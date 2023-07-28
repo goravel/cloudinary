@@ -1,7 +1,12 @@
 package cloudinary
 
 import (
+	"errors"
 	"fmt"
+	"github.com/cloudinary/cloudinary-go/v2/api"
+	"github.com/cloudinary/cloudinary-go/v2/api/admin/search"
+	"github.com/goravel/framework/support/str"
+	"os"
 	"time"
 
 	"github.com/cloudinary/cloudinary-go/v2"
@@ -43,37 +48,63 @@ func NewCloudinary(ctx context.Context, config config.Config, disk string) (*Clo
 	}, nil
 }
 
-// AllDirectories returns all the directories within a given directory.(it is not typically used for cloud storage systems)
+// AllDirectories returns all the directories within a given directory and all its subdirectories.
 func (r *Cloudinary) AllDirectories(path string) ([]string, error) {
-	folders, err := r.instance.Admin.RootFolders(r.ctx, admin.RootFoldersParams{})
+	var result []string
+	err := r.getAllDirectoriesRecursively(validPath(path), &result)
 	if err != nil {
 		return nil, err
-	}
-	var result []string
-	for _, folder := range folders.Folders {
-		result = append(result, folder.Path)
 	}
 	return result, nil
 }
 
-// AllFiles returns all the files from the given directory.(it is not typically used for cloud storage systems)
-func (r *Cloudinary) AllFiles(path string) ([]string, error) {
-	folders, err := r.instance.Admin.Assets(r.ctx, admin.AssetsParams{
-		Prefix: path,
-	})
+// getAllDirectoriesRecursively is a helper function to recursively get all directories within a given directory and its subdirectories.
+func (r *Cloudinary) getAllDirectoriesRecursively(path string, result *[]string) error {
+	folders, err := r.instance.Admin.SubFolders(r.ctx, admin.SubFoldersParams{Folder: path})
 	if err != nil {
-		return nil, err
+		return err
 	}
+
+	for _, folder := range folders.Folders {
+		*result = append(*result, folder.Path)
+		// Recursively call to get directories in the subdirectory
+		err := r.getAllDirectoriesRecursively(folder.Path, result)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// AllFiles returns all the files from the given directory including all its subdirectories.
+func (r *Cloudinary) AllFiles(path string) ([]string, error) {
 	var result []string
-	for _, folder := range folders.Assets {
-		result = append(result, folder.PublicID)
+	assetTypes := []api.AssetType{api.Image, api.Video, api.File}
+	for _, assetType := range assetTypes {
+		folders, err := r.instance.Admin.Assets(r.ctx, admin.AssetsParams{
+			Prefix:       validPath(path),
+			DeliveryType: "upload",
+			AssetType:    assetType,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, folder := range folders.Assets {
+			result = append(result, folder.PublicID)
+		}
 	}
 	return result, nil
 }
 
 // Copy copies a file to a new location.
 func (r *Cloudinary) Copy(oldFile, newFile string) error {
-	result, err := r.instance.Upload.Upload(r.ctx, oldFile, uploader.UploadParams{
+	GetAssetType(&oldFile)
+	resource, err := r.getResource(oldFile)
+	if err != nil {
+		return err
+	}
+	result, err := r.instance.Upload.Upload(r.ctx, resource.SecureURL, uploader.UploadParams{
 		PublicID: newFile,
 	})
 	if err != nil {
@@ -89,8 +120,10 @@ func (r *Cloudinary) Copy(oldFile, newFile string) error {
 // Delete deletes a file.
 func (r *Cloudinary) Delete(file ...string) error {
 	for _, f := range file {
+		GetAssetType(&f)
 		result, err := r.instance.Upload.Destroy(r.ctx, uploader.DestroyParams{
-			PublicID: f,
+			PublicID:     f,
+			ResourceType: string(GetAssetType(&f)),
 		})
 		if err != nil {
 			return err
@@ -104,8 +137,18 @@ func (r *Cloudinary) Delete(file ...string) error {
 
 // DeleteDirectory deletes a directory.
 func (r *Cloudinary) DeleteDirectory(directory string) error {
-	_, err := r.instance.Admin.DeleteAssetsByPrefix(r.ctx, admin.DeleteAssetsByPrefixParams{
-		Prefix: []string{directory},
+	assetTypes := []api.AssetType{api.Image, api.Video, api.File}
+	for _, assetType := range assetTypes {
+		_, err := r.instance.Admin.DeleteAssetsByPrefix(r.ctx, admin.DeleteAssetsByPrefixParams{
+			Prefix:    []string{validPath(directory)},
+			AssetType: assetType,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	_, err := r.instance.Admin.DeleteFolder(r.ctx, admin.DeleteFolderParams{
+		Folder: directory,
 	})
 	if err != nil {
 		return err
@@ -116,7 +159,7 @@ func (r *Cloudinary) DeleteDirectory(directory string) error {
 // Directories returns all the directories within a given directory.
 func (r *Cloudinary) Directories(path string) ([]string, error) {
 	folders, err := r.instance.Admin.SubFolders(r.ctx, admin.SubFoldersParams{
-		Folder: path,
+		Folder: validPath(path),
 	})
 	if err != nil {
 		return nil, err
@@ -128,41 +171,67 @@ func (r *Cloudinary) Directories(path string) ([]string, error) {
 	return result, nil
 }
 
-// Exists checks if a file exists.
+// Exists checks if a file exists in the Cloudinary storage.
 func (r *Cloudinary) Exists(file string) bool {
-	_, err := r.instance.Admin.Asset(r.ctx, admin.AssetParams{
-		PublicID: file,
+	assetType := GetAssetType(&file)
+	asset, err := r.instance.Admin.Asset(r.ctx, admin.AssetParams{
+		PublicID:  file,
+		AssetType: assetType,
 	})
+	if asset.Error.Message != "" {
+		return false
+	}
 	return err == nil
 }
 
 // Files returns all the files from the given directory.
 func (r *Cloudinary) Files(path string) ([]string, error) {
-	folders, err := r.instance.Admin.Assets(r.ctx, admin.AssetsParams{
-		Prefix: path,
+	folders, err := r.instance.Admin.Search(r.ctx, search.Query{
+		Expression: fmt.Sprintf("folder:%s", validPath(path)),
+		SortBy: []search.SortByField{
+			{"public_id": search.Ascending},
+		},
 	})
 	if err != nil {
 		return nil, err
 	}
 	var result []string
 	for _, folder := range folders.Assets {
-		result = append(result, folder.SecureURL)
+		result = append(result, folder.PublicID)
 	}
 	return result, nil
 }
 
 // Get returns the contents of a file.
 func (r *Cloudinary) Get(file string) (string, error) {
-	return "", nil
+	assetType := GetAssetType(&file)
+	explicitResult, err := r.instance.Upload.Explicit(r.ctx, uploader.ExplicitParams{
+		PublicID:     file,
+		RawConvert:   file,
+		ResourceType: string(assetType),
+		Type:         "upload",
+	})
+	if err != nil {
+		return "", err
+	}
+	if explicitResult.Error.Message != "" {
+		return "", fmt.Errorf(explicitResult.Error.Message)
+	}
+	rawContent, err := GetRawContent(explicitResult.SecureURL)
+	if err != nil {
+		return "", err
+	}
+	return string(rawContent), nil
 }
 
 // LastModified returns the last modified time of a file.
 func (r *Cloudinary) LastModified(file string) (time.Time, error) {
 	resource, err := r.getResource(file)
+	color.Redln(resource.CreatedAt.Format("2006-01-02 15"))
 	if err != nil {
 		return time.Time{}, err
 	}
-	return resource.LastUpdated.UpdatedAt, nil
+	return resource.CreatedAt, nil
 }
 
 // MakeDirectory creates a directory.
@@ -185,7 +254,12 @@ func (r *Cloudinary) MimeType(file string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return resource.ResourceType, nil
+	// Check if the resource format is empty, return only the resource type.
+	if resource.Format == "" {
+		return resource.ResourceType, nil
+	}
+
+	return resource.ResourceType + "/" + resource.Format, nil
 }
 
 // Missing checks if a file is missing.
@@ -195,9 +269,11 @@ func (r *Cloudinary) Missing(file string) bool {
 
 // Move moves a file to a new location.
 func (r *Cloudinary) Move(oldFile, newFile string) error {
+	fromType := GetAssetType(&oldFile)
 	rename, err := r.instance.Upload.Rename(r.ctx, uploader.RenameParams{
-		FromPublicID: oldFile,
-		ToPublicID:   newFile,
+		FromPublicID: validPath(oldFile),
+		ToPublicID:   validPath(newFile),
+		ResourceType: string(fromType),
 	})
 	if err != nil {
 		return err
@@ -210,29 +286,51 @@ func (r *Cloudinary) Move(oldFile, newFile string) error {
 
 // Path returns the full path for a file.
 func (r *Cloudinary) Path(file string) string {
+	//resource, err := r.getResource(file)
+	//if err != nil {
+	//	color.Redln("[Cloudinary] get resource error: ", err)
+	//	return ""
+	//}
+	file = validPath(file)
+	RemoveFileExtension(&file)
 	return file
 }
 
 // Put stores a new file on the disk.
 func (r *Cloudinary) Put(file, content string) error {
-	//_, err := r.instance.Upload.Upload(r.ctx, file, uploader.UploadParams{
-	//	PublicID:     file,
-	//	ResourceType: "auto",
-	//})
-	//if err != nil {
-	//	return err
-	//}
+	tempFile, err := r.tempFile(content)
+	defer os.Remove(tempFile.Name())
+	if err != nil {
+		return err
+	}
+	_, err = r.instance.Upload.Upload(r.ctx, tempFile.Name(), uploader.UploadParams{
+		PublicID:    file,
+		UseFilename: api.Bool(true),
+	})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 // PutFile stores a new file on the disk.
 func (r *Cloudinary) PutFile(path string, source filesystem.File) (string, error) {
-	return "", nil
+	return r.PutFileAs(path, source, str.Random(40))
 }
 
 // PutFileAs stores a new file on the disk.
 func (r *Cloudinary) PutFileAs(path string, source filesystem.File, name string) (string, error) {
-	return "", nil
+	RemoveFileExtension(&name)
+	uploadResult, err := r.instance.Upload.Upload(r.ctx, source.File(), uploader.UploadParams{
+		Folder:         validPath(path),
+		PublicID:       name,
+		UseFilename:    api.Bool(true),
+		UniqueFilename: api.Bool(false),
+	})
+	if err != nil {
+		return "", err
+	}
+	return uploadResult.PublicID, nil
 }
 
 // Size returns the file size of a given file.
@@ -246,7 +344,7 @@ func (r *Cloudinary) Size(file string) (int64, error) {
 
 // TemporaryUrl get the temporary url of a file.
 func (r *Cloudinary) TemporaryUrl(file string, time time.Time) (string, error) {
-	return "", nil
+	return "", errors.New("we don't support temporary url for cloudinary")
 }
 
 // WithContext sets the context for the driver.
@@ -269,11 +367,26 @@ func (r *Cloudinary) Url(file string) string {
 }
 
 func (r *Cloudinary) getResource(path string) (*admin.AssetResult, error) {
+	assetType := GetAssetType(&path)
 	result, err := r.instance.Admin.Asset(r.ctx, admin.AssetParams{
-		PublicID: path,
+		PublicID:  path,
+		AssetType: assetType, // Set the asset type dynamically based on the file extension.
 	})
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
+}
+
+func (r *Cloudinary) tempFile(content string) (*os.File, error) {
+	tempFile, err := os.CreateTemp(os.TempDir(), "goravel-")
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := tempFile.WriteString(content); err != nil {
+		return nil, err
+	}
+
+	return tempFile, nil
 }
