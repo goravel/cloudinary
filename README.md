@@ -3,8 +3,8 @@ A cloudinary driver for facades.Storage of Goravel.
 
 ## Version
 | goravel/cloudinary | cloudinary | goravel/framework |
-| --- | --- |-------------------|
-| 1.0.* | 1.13.* | v1.12.0           |
+|--------------------|------------|-------------------|
+| 1.0.0              | 1.7.0      | v1.12.0           |
 
 ## Install
 1. Add package
