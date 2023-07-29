@@ -1,21 +1,21 @@
 package cloudinary
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"github.com/cloudinary/cloudinary-go/v2/api"
-	"github.com/cloudinary/cloudinary-go/v2/api/admin/search"
-	"github.com/goravel/framework/support/str"
 	"os"
 	"time"
 
 	"github.com/cloudinary/cloudinary-go/v2"
+	"github.com/cloudinary/cloudinary-go/v2/api"
 	"github.com/cloudinary/cloudinary-go/v2/api/admin"
+	"github.com/cloudinary/cloudinary-go/v2/api/admin/search"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/gookit/color"
 	"github.com/goravel/framework/contracts/config"
 	"github.com/goravel/framework/contracts/filesystem"
-	"golang.org/x/net/context"
+	"github.com/goravel/framework/support/str"
 )
 
 type Cloudinary struct {
@@ -51,30 +51,22 @@ func NewCloudinary(ctx context.Context, config config.Config, disk string) (*Clo
 // AllDirectories returns all the directories within a given directory and all its subdirectories.
 func (r *Cloudinary) AllDirectories(path string) ([]string, error) {
 	var result []string
-	err := r.getAllDirectoriesRecursively(validPath(path), &result)
+	folders, err := r.instance.Admin.SubFolders(r.ctx, admin.SubFoldersParams{Folder: path})
 	if err != nil {
 		return nil, err
 	}
-	return result, nil
-}
-
-// getAllDirectoriesRecursively is a helper function to recursively get all directories within a given directory and its subdirectories.
-func (r *Cloudinary) getAllDirectoriesRecursively(path string, result *[]string) error {
-	folders, err := r.instance.Admin.SubFolders(r.ctx, admin.SubFoldersParams{Folder: path})
-	if err != nil {
-		return err
-	}
 
 	for _, folder := range folders.Folders {
-		*result = append(*result, folder.Path)
+		result = append(result, folder.Path)
 		// Recursively call to get directories in the subdirectory
-		err := r.getAllDirectoriesRecursively(folder.Path, result)
+		subdirs, err := r.AllDirectories(folder.Path)
 		if err != nil {
-			return err
+			return nil, err
 		}
+		result = append(result, subdirs...)
 	}
 
-	return nil
+	return result, nil
 }
 
 // AllFiles returns all the files from the given directory including all its subdirectories.
@@ -173,10 +165,12 @@ func (r *Cloudinary) Directories(path string) ([]string, error) {
 
 // Exists checks if a file exists in the Cloudinary storage.
 func (r *Cloudinary) Exists(file string) bool {
-	assetType := GetAssetType(&file)
-	asset, err := r.instance.Admin.Asset(r.ctx, admin.AssetParams{
-		PublicID:  file,
-		AssetType: assetType,
+	RemoveFileExtension(&file)
+	asset, err := r.instance.Admin.Search(r.ctx, search.Query{
+		Expression: fmt.Sprintf("public_id:%s", file),
+		SortBy: []search.SortByField{
+			{"public_id": search.Ascending},
+		},
 	})
 	if asset.Error.Message != "" {
 		return false
@@ -227,7 +221,6 @@ func (r *Cloudinary) Get(file string) (string, error) {
 // LastModified returns the last modified time of a file.
 func (r *Cloudinary) LastModified(file string) (time.Time, error) {
 	resource, err := r.getResource(file)
-	color.Redln(resource.CreatedAt.Format("2006-01-02 15"))
 	if err != nil {
 		return time.Time{}, err
 	}
