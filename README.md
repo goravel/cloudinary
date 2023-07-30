@@ -3,8 +3,8 @@ A cloudinary driver for facades.Storage of Goravel.
 
 ## Version
 | goravel/cloudinary | cloudinary | goravel/framework |
-| --- | --- |-------------------|
-| 1.0.* | 1.13.* | v1.12.0           |
+|--------------------|------------|-------------------|
+| v1.0.0             | v1.7.0     | v1.12.0           |
 
 ## Install
 1. Add package
@@ -24,8 +24,10 @@ A cloudinary driver for facades.Storage of Goravel.
 3. Add cloudinary disk to `config/filesystems.go` file
    ```go
    // config/filesystems.go
+   ...
+   
    import (
-         cloudinaryFacades "github.com/goravel/cloudinary"
+         cloudinaryfacades "github.com/goravel/cloudinary"
          "github.com/goravel/framework/filesystem"
    )
    
@@ -33,11 +35,11 @@ A cloudinary driver for facades.Storage of Goravel.
          ...
          "cloudinary": map[string]any{
                "driver": "custom",
-               "cloud": "your_cloud_name",
-               "key": "your_api_key", 
-               "secret": "your_api_secret",
+               "cloud":  config.Env("CLOUDINARY_CLOUD_NAME"),
+               "key":    config.Env("CLOUDINARY_API_KEY"), 
+               "secret": config.Env("CLOUDINARY_API_SECRET"),
                "via": func()(filestystem.Disk, error) {
-                     return cloudinaryFacades.Cloudinary("cloudinary"), nil
+                     return cloudinaryfacades.Cloudinary("cloudinary"), nil // The `cloudinary` value is the `disks` key
                },
          }
    }
