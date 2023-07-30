@@ -2,44 +2,43 @@ package cloudinary
 
 import (
 	"fmt"
-	"github.com/cloudinary/cloudinary-go/v2/api"
-	"github.com/goravel/framework/contracts/filesystem"
-	"github.com/goravel/framework/support/file"
 	"io"
 	"net/http"
-	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/cloudinary/cloudinary-go/v2/api"
 )
 
-// RemoveFileExtension removes the file extension from the given filename, if it exists.
+// RemoveFileExtension removes the file extension from the given filename if it exists.
 // If there's no file extension, the original filename is kept unchanged.
-func RemoveFileExtension(filename *string) {
-	ext := filepath.Ext(*filename)
+func RemoveFileExtension(fileName string) string {
+	ext := filepath.Ext(fileName)
 	if ext != "" {
-		*filename = (*filename)[0 : len(*filename)-len(ext)]
+		fileName = (fileName)[0 : len(fileName)-len(ext)]
 	}
+	return fileName
 }
 
 // GetAssetType returns the asset type based on the file extension.
-func GetAssetType(file *string) api.AssetType {
-	fileName := *file
+func GetAssetType(file string) (api.AssetType, string) {
+	fileName := file
 	fileExtension := strings.ToLower(filepath.Ext(fileName))
 	// Check if the file has an extension or not.
 	if fileExtension == "" {
 		// Assuming "Image" asset type for files with no extension.
-		return api.Image
+		return api.Image, fileName
 	}
 
 	switch fileExtension {
 	case ".ai", ".avif", ".bmp", ".bw", ".djvu", ".dng", ".ps", ".ept", ".eps", ".eps3", ".fbx", ".flif", ".gif", ".glb", ".heif", ".heic", ".ico", ".indd", ".jpg", ".jpe", ".jpeg", ".jp2", ".wdp", ".jxr", ".hdp", ".jxl", ".obj", ".pdf", ".ply", ".png", ".psd", ".arw", ".cr2", ".svg", ".tga", ".tif", ".tiff", ".u3ma", ".usdz", ".webp":
-		RemoveFileExtension(file)
-		return api.Image
+		fileName := RemoveFileExtension(file)
+		return api.Image, fileName
 	case ".3g2", ".3gp", ".avi", ".flv", ".m3u8", ".ts", ".m2ts", ".mts", ".mov", ".mkv", ".mp4", ".mpeg", ".mpd", ".mxf", ".ogv", ".webm", ".wmv", ".aac", ".aiff", ".amr", ".flac", ".m4a", ".mp3", ".ogg", ".opus", ".wav":
-		RemoveFileExtension(file)
-		return api.Video
+		fileName := RemoveFileExtension(file)
+		return api.Video, fileName
 	default:
-		return api.File
+		return api.File, fileName
 	}
 }
 
@@ -62,28 +61,10 @@ func GetRawContent(url string) ([]byte, error) {
 	return rawContent, nil
 }
 
-func fullPathOfFile(filePath string, source filesystem.File, name string) (string, error) {
-	extension := path.Ext(name)
-	if extension == "" {
-		var err error
-		extension, err = file.Extension(source.File(), true)
-		if err != nil {
-			return "", err
-		}
-
-		return filepath.Join(filePath, strings.TrimSuffix(strings.TrimPrefix(path.Base(name), string(filepath.Separator)), string(filepath.Separator))+"."+extension), nil
-	} else {
-		return filepath.Join(filePath, strings.TrimPrefix(path.Base(name), string(filepath.Separator))), nil
-	}
-}
-
 func validPath(path string) string {
 	realPath := strings.TrimPrefix(path, "."+string(filepath.Separator))
 	realPath = strings.TrimPrefix(realPath, string(filepath.Separator))
 	realPath = strings.TrimPrefix(realPath, ".")
 	realPath = strings.TrimSuffix(realPath, string(filepath.Separator))
-	//if realPath != "" && !strings.HasSuffix(realPath, string(filepath.Separator)) {
-	//	realPath += string(filepath.Separator)
-	//}
 	return realPath
 }

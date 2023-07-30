@@ -27,7 +27,7 @@ A cloudinary driver for facades.Storage of Goravel.
    ...
    
    import (
-         cloudinaryfacades "github.com/goravel/cloudinary"
+         cloudinaryfacades "github.com/goravel/cloudinary/facades"
          "github.com/goravel/framework/filesystem"
    )
    
@@ -35,9 +35,9 @@ A cloudinary driver for facades.Storage of Goravel.
          ...
          "cloudinary": map[string]any{
                "driver": "custom",
-               "cloud":  config.Env("CLOUDINARY_CLOUD_NAME"),
-               "key":    config.Env("CLOUDINARY_API_KEY"), 
-               "secret": config.Env("CLOUDINARY_API_SECRET"),
+               "cloud":  config.Env("CLOUDINARY_CLOUD"),
+               "key":    config.Env("CLOUDINARY_ACCESS_KEY_ID"), 
+               "secret": config.Env("CLOUDINARY_ACCESS_KEY_SECRET"),
                "via": func()(filestystem.Disk, error) {
                      return cloudinaryfacades.Cloudinary("cloudinary"), nil // The `cloudinary` value is the `disks` key
                },
