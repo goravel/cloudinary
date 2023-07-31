@@ -15,7 +15,6 @@ import (
 	"github.com/gookit/color"
 	"github.com/goravel/framework/contracts/config"
 	"github.com/goravel/framework/contracts/filesystem"
-	"github.com/goravel/framework/support/str"
 )
 
 type Cloudinary struct {
@@ -91,8 +90,7 @@ func (r *Cloudinary) AllFiles(path string) ([]string, error) {
 
 // Copy copies a file to a new location.
 func (r *Cloudinary) Copy(oldFile, newFile string) error {
-	oldFileName := RemoveFileExtension(oldFile)
-	resource, err := r.getResource(oldFileName)
+	resource, err := r.getResource(oldFile)
 	if err != nil {
 		return err
 	}
@@ -112,9 +110,9 @@ func (r *Cloudinary) Copy(oldFile, newFile string) error {
 // Delete deletes a file.
 func (r *Cloudinary) Delete(file ...string) error {
 	for _, f := range file {
-		assetType, fileName := GetAssetType(f)
+		assetType := GetAssetType(f)
 		result, err := r.instance.Upload.Destroy(r.ctx, uploader.DestroyParams{
-			PublicID:     fileName,
+			PublicID:     f,
 			ResourceType: string(assetType),
 		})
 		if err != nil {
@@ -165,13 +163,7 @@ func (r *Cloudinary) Directories(path string) ([]string, error) {
 
 // Exists checks if a file exists in the Cloudinary storage.
 func (r *Cloudinary) Exists(file string) bool {
-	fileName := RemoveFileExtension(file)
-	asset, err := r.instance.Admin.Search(r.ctx, search.Query{
-		Expression: fmt.Sprintf("public_id:%s", fileName),
-		SortBy: []search.SortByField{
-			{"public_id": search.Ascending},
-		},
-	})
+	asset, err := r.getResource(file)
 	if asset.Error.Message != "" {
 		return false
 	}
@@ -198,10 +190,9 @@ func (r *Cloudinary) Files(path string) ([]string, error) {
 
 // Get returns the contents of a file.
 func (r *Cloudinary) Get(file string) (string, error) {
-	assetType, fileName := GetAssetType(file)
+	assetType := GetAssetType(file)
 	explicitResult, err := r.instance.Upload.Explicit(r.ctx, uploader.ExplicitParams{
-		PublicID:     fileName,
-		RawConvert:   fileName,
+		PublicID:     file,
 		ResourceType: string(assetType),
 		Type:         "upload",
 	})
@@ -262,9 +253,9 @@ func (r *Cloudinary) Missing(file string) bool {
 
 // Move moves a file to a new location.
 func (r *Cloudinary) Move(oldFile, newFile string) error {
-	fromType, oldFileName := GetAssetType(oldFile)
+	fromType := GetAssetType(oldFile)
 	rename, err := r.instance.Upload.Rename(r.ctx, uploader.RenameParams{
-		FromPublicID: validPath(oldFileName),
+		FromPublicID: validPath(oldFile),
 		ToPublicID:   validPath(newFile),
 		ResourceType: string(fromType),
 	})
@@ -279,7 +270,7 @@ func (r *Cloudinary) Move(oldFile, newFile string) error {
 
 // Path returns the full path for a file.
 func (r *Cloudinary) Path(file string) string {
-	return RemoveFileExtension(validPath(file))
+	return validPath(file)
 }
 
 // Put stores a new file on the disk.
@@ -298,15 +289,14 @@ func (r *Cloudinary) Put(file, content string) error {
 
 // PutFile stores a new file on the disk.
 func (r *Cloudinary) PutFile(path string, source filesystem.File) (string, error) {
-	return r.PutFileAs(path, source, str.Random(40))
+	return r.PutFileAs(path, source, source.File())
 }
 
 // PutFileAs stores a new file on the disk.
 func (r *Cloudinary) PutFileAs(path string, source filesystem.File, name string) (string, error) {
-	fileName := RemoveFileExtension(name)
 	uploadResult, err := r.instance.Upload.Upload(r.ctx, source.File(), uploader.UploadParams{
 		Folder:         validPath(path),
-		PublicID:       fileName,
+		PublicID:       name,
 		UseFilename:    api.Bool(true),
 		UniqueFilename: api.Bool(false),
 	})
@@ -350,10 +340,9 @@ func (r *Cloudinary) Url(file string) string {
 }
 
 func (r *Cloudinary) getResource(path string) (*admin.AssetResult, error) {
-	assetType, pathName := GetAssetType(path)
 	return r.instance.Admin.Asset(r.ctx, admin.AssetParams{
-		PublicID:  pathName,
-		AssetType: assetType, // Set the asset type dynamically based on the file extension.
+		PublicID:  path,
+		AssetType: GetAssetType(path),
 	})
 }
 

@@ -20,7 +20,5 @@ func (receiver *ServiceProvider) Register(app foundation.Application) {
 	})
 }
 func (receiver *ServiceProvider) Boot(app foundation.Application) {
-	app.Publishes("github.com/goravel/cloudinary", map[string]string{
-		"config/cloudinary.go": app.ConfigPath(""),
-	})
+
 }

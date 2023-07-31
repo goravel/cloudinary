@@ -10,35 +10,23 @@ import (
 	"github.com/cloudinary/cloudinary-go/v2/api"
 )
 
-// RemoveFileExtension removes the file extension from the given filename if it exists.
-// If there's no file extension, the original filename is kept unchanged.
-func RemoveFileExtension(fileName string) string {
-	ext := filepath.Ext(fileName)
-	if ext != "" {
-		fileName = (fileName)[0 : len(fileName)-len(ext)]
-	}
-	return fileName
-}
-
 // GetAssetType returns the asset type based on the file extension.
-func GetAssetType(file string) (api.AssetType, string) {
+func GetAssetType(file string) api.AssetType {
 	fileName := file
 	fileExtension := strings.ToLower(filepath.Ext(fileName))
 	// Check if the file has an extension or not.
 	if fileExtension == "" {
 		// Assuming "Image" asset type for files with no extension.
-		return api.Image, fileName
+		return api.Image
 	}
 
 	switch fileExtension {
 	case ".ai", ".avif", ".bmp", ".bw", ".djvu", ".dng", ".ps", ".ept", ".eps", ".eps3", ".fbx", ".flif", ".gif", ".glb", ".heif", ".heic", ".ico", ".indd", ".jpg", ".jpe", ".jpeg", ".jp2", ".wdp", ".jxr", ".hdp", ".jxl", ".obj", ".pdf", ".ply", ".png", ".psd", ".arw", ".cr2", ".svg", ".tga", ".tif", ".tiff", ".u3ma", ".usdz", ".webp":
-		fileName := RemoveFileExtension(file)
-		return api.Image, fileName
+		return api.Image
 	case ".3g2", ".3gp", ".avi", ".flv", ".m3u8", ".ts", ".m2ts", ".mts", ".mov", ".mkv", ".mp4", ".mpeg", ".mpd", ".mxf", ".ogv", ".webm", ".wmv", ".aac", ".aiff", ".amr", ".flac", ".m4a", ".mp3", ".ogg", ".opus", ".wav":
-		fileName := RemoveFileExtension(file)
-		return api.Video, fileName
+		return api.Video
 	default:
-		return api.File, fileName
+		return api.File
 	}
 }
 
