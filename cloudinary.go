@@ -344,8 +344,8 @@ func (r *Cloudinary) Url(file string) string {
 func (r *Cloudinary) getAsset(path string) (*admin.AssetResult, error) {
 	color.Yellowln(r.getPublicId(path), api.AssetType(r.getResourceType(path)), r.getResourceType(path))
 	return r.instance.Admin.Asset(r.ctx, admin.AssetParams{
-		PublicID:  path,
-		AssetType: GetAssetType(path),
+		PublicID:  r.getPublicId(path),
+		AssetType: api.AssetType(r.getResourceType(path)),
 	})
 }
 
