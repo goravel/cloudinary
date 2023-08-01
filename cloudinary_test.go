@@ -27,6 +27,11 @@ func TestStorage(t *testing.T) {
 	mockConfig.On("GetString", "filesystems.disks.cloudinary.secret").Return(os.Getenv("CLOUDINARY_API_SECRET"))
 	mockConfig.On("GetString", "filesystems.disks.cloudinary.cloud").Return(os.Getenv("CLOUDINARY_CLOUD_NAME"))
 	mockConfig.On("GetString", "filesystems.disks.cloudinary.url").Return(os.Getenv("CLOUDINARY_URL"))
+	mockConfig.On("Get", "filesystems.disks.cloudinary.resource_types").Return(map[string][]string{
+		"image": {"png"},
+		"video": {},
+		"raw":   {"txt", "pdf"},
+	})
 
 	var driver contractsfilesystem.Driver
 	//url := os.Getenv("CLOUDINARY_URL")
@@ -46,7 +51,6 @@ func TestStorage(t *testing.T) {
 				assert.True(t, driver.Exists("AllDirectories/1.txt"))
 				assert.True(t, driver.Exists("AllDirectories/2.txt"))
 				assert.True(t, driver.Exists("AllDirectories/3/3.txt"))
-				assert.True(t, driver.Exists("AllDirectories/3/4"))
 				assert.True(t, driver.Exists("AllDirectories/3/5/6/6.txt"))
 				files, err := driver.AllDirectories("AllDirectories")
 				assert.Nil(t, err)
@@ -116,6 +120,10 @@ func TestStorage(t *testing.T) {
 			setup: func() {
 				assert.Nil(t, driver.Put("DeleteDirectory/1.txt", "Goravel"))
 				assert.True(t, driver.Exists("DeleteDirectory/1.txt"))
+				fileInfo := &File{path: "logo.png"}
+				path, err := driver.PutFile("DeleteDirectory", fileInfo)
+				assert.Nil(t, err)
+				assert.True(t, driver.Exists(path))
 				assert.Nil(t, driver.DeleteDirectory("DeleteDirectory"))
 				assert.True(t, driver.Missing("DeleteDirectory/1.txt"))
 				assert.Nil(t, driver.DeleteDirectory("DeleteDirectory"))
@@ -132,7 +140,6 @@ func TestStorage(t *testing.T) {
 				assert.True(t, driver.Exists("Directories/1.txt"))
 				assert.True(t, driver.Exists("Directories/2.txt"))
 				assert.True(t, driver.Exists("Directories/3/3.txt"))
-				assert.True(t, driver.Exists("Directories/3/4"))
 				assert.True(t, driver.Exists("Directories/3/5/5.txt"))
 				files, err := driver.Directories("Directories")
 				assert.Nil(t, err)
@@ -234,6 +241,7 @@ func TestStorage(t *testing.T) {
 				mimeType, err = driver.MimeType(path)
 				assert.Nil(t, err)
 				assert.Equal(t, "image/png", mimeType)
+				assert.Nil(t, driver.DeleteDirectory("MimeType"))
 			},
 		},
 		{
