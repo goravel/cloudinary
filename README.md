@@ -1,5 +1,5 @@
 # cloudinary
-A cloudinary driver for facades.Storage of Goravel.
+A cloudinary driver for `facades.Storage()` of Goravel.
 
 ## Version
 | goravel/cloudinary | cloudinary | goravel/framework |

@@ -4,6 +4,10 @@ on:
     branches:
       - master
   pull_request:
+env:
+  CLOUDINARY_ACCESS_KEY_ID: ${{ secrets.CLOUDINARY_ACCESS_KEY_ID }}
+  CLOUDINARY_ACCESS_KEY_SECRET: ${{ secrets.CLOUDINARY_ACCESS_KEY_SECRET }}
+  CLOUDINARY_CLOUD: ${{ secrets.CLOUDINARY_CLOUD }}
 jobs:
   test:
     strategy:
@@ -19,17 +23,3 @@ jobs:
         run: go mod tidy
       - name: Run tests
         run: go test ./...
-  windows:
-    strategy:
-      matrix:
-        go: [ '1.20', '1.19', '1.18' ]
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
-        with:
-          go-version: ${{ matrix.go }}
-      - name: Install dependencies 📦
-        run: go mod tidy
-      - name: Run tests ✅
-        run: go test ./... -short
