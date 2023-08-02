@@ -13,7 +13,7 @@ require (
 require (
 	github.com/creasty/defaults v1.5.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
+	github.com/golang-module/carbon/v2 v2.2.3 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/schema v1.2.0 // indirect

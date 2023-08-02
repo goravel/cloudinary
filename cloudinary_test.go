@@ -2,31 +2,35 @@ package cloudinary
 
 import (
 	"context"
+	"crypto/rand"
+	"io"
+	"math/big"
 	"mime"
+	"net/http"
 	"os"
+	"regexp"
 	"testing"
 	"time"
 
 	"github.com/gookit/color"
-	"github.com/stretchr/testify/assert"
-
 	configmocks "github.com/goravel/framework/contracts/config/mocks"
 	contractsfilesystem "github.com/goravel/framework/contracts/filesystem"
+	"github.com/goravel/framework/support/carbon"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStorage(t *testing.T) {
-	if os.Getenv("CLOUDINARY_API_KEY") == "" {
-		color.Redln("No filesystem tests run, please add Cloudinary configuration: CLOUDINARY_API_KEY= CLOUDINARY_API_SECRET= CLOUDINARY_CLOUD_NAME= CLOUDINARY_URL= go test ./...")
+	if os.Getenv("CLOUDINARY_ACCESS_KEY_ID") == "" {
+		color.Redln("No filesystem tests run, please add Cloudinary configuration: CLOUDINARY_ACCESS_KEY_ID= CLOUDINARY_ACCESS_KEY_SECRET= CLOUDINARY_CLOUD= go test ./...")
 		return
 	}
 
 	assert.Nil(t, os.WriteFile("test.txt", []byte("Goravel"), 0644))
 
 	mockConfig := &configmocks.Config{}
-	mockConfig.On("GetString", "filesystems.disks.cloudinary.key").Return(os.Getenv("CLOUDINARY_API_KEY"))
-	mockConfig.On("GetString", "filesystems.disks.cloudinary.secret").Return(os.Getenv("CLOUDINARY_API_SECRET"))
-	mockConfig.On("GetString", "filesystems.disks.cloudinary.cloud").Return(os.Getenv("CLOUDINARY_CLOUD_NAME"))
-	mockConfig.On("GetString", "filesystems.disks.cloudinary.url").Return(os.Getenv("CLOUDINARY_URL"))
+	mockConfig.On("GetString", "filesystems.disks.cloudinary.key").Return(os.Getenv("CLOUDINARY_ACCESS_KEY_ID"))
+	mockConfig.On("GetString", "filesystems.disks.cloudinary.secret").Return(os.Getenv("CLOUDINARY_ACCESS_KEY_SECRET"))
+	mockConfig.On("GetString", "filesystems.disks.cloudinary.cloud").Return(os.Getenv("CLOUDINARY_CLOUD"))
 	mockConfig.On("Get", "filesystems.disks.cloudinary.resource_types").Return(map[string][]string{
 		"image": {"png"},
 		"video": {},
@@ -34,7 +38,12 @@ func TestStorage(t *testing.T) {
 	})
 
 	var driver contractsfilesystem.Driver
-	//url := os.Getenv("CLOUDINARY_URL")
+	randNum, err := rand.Int(rand.Reader, big.NewInt(1000))
+	rootFolder := randNum.String() + "/"
+	assert.Nil(t, err)
+	driver, err = NewCloudinary(context.Background(), mockConfig, "cloudinary")
+	assert.NotNil(t, driver)
+	assert.Nil(t, err)
 
 	tests := []struct {
 		name  string
@@ -43,332 +52,329 @@ func TestStorage(t *testing.T) {
 		{
 			name: "AllDirectories",
 			setup: func() {
-				assert.Nil(t, driver.Put("AllDirectories/1.txt", "Goravel"))
-				assert.Nil(t, driver.Put("AllDirectories/2.txt", "Goravel"))
-				assert.Nil(t, driver.Put("AllDirectories/3/3.txt", "Goravel"))
-				assert.Nil(t, driver.Put("AllDirectories/3/5/6/6.txt", "Goravel"))
-				assert.Nil(t, driver.MakeDirectory("AllDirectories/3/4"))
-				assert.True(t, driver.Exists("AllDirectories/1.txt"))
-				assert.True(t, driver.Exists("AllDirectories/2.txt"))
-				assert.True(t, driver.Exists("AllDirectories/3/3.txt"))
-				assert.True(t, driver.Exists("AllDirectories/3/5/6/6.txt"))
-				files, err := driver.AllDirectories("AllDirectories")
+				assert.Nil(t, driver.Put(rootFolder+"AllDirectories/1.txt", "Goravel"))
+				assert.Nil(t, driver.Put(rootFolder+"AllDirectories/2.txt", "Goravel"))
+				assert.Nil(t, driver.Put(rootFolder+"AllDirectories/3/3.txt", "Goravel"))
+				assert.Nil(t, driver.Put(rootFolder+"AllDirectories/3/5/6/6.txt", "Goravel"))
+				assert.Nil(t, driver.MakeDirectory(rootFolder+"AllDirectories/3/4"))
+				assert.True(t, driver.Exists(rootFolder+"AllDirectories/1.txt"))
+				assert.True(t, driver.Exists(rootFolder+"AllDirectories/2.txt"))
+				assert.True(t, driver.Exists(rootFolder+"AllDirectories/3/3.txt"))
+				assert.True(t, driver.Exists(rootFolder+"AllDirectories/3/5/6/6.txt"))
+				files, err := driver.AllDirectories(rootFolder + "AllDirectories")
 				assert.Nil(t, err)
-				assert.Equal(t, []string{"AllDirectories/3", "AllDirectories/3/4", "AllDirectories/3/5", "AllDirectories/3/5/6"}, files)
-				files, err = driver.AllDirectories("./AllDirectories")
+				assert.Equal(t, []string{rootFolder + "AllDirectories/3", rootFolder + "AllDirectories/3/4", rootFolder + "AllDirectories/3/5", rootFolder + "AllDirectories/3/5/6"}, files)
+				files, err = driver.AllDirectories("./" + rootFolder + "AllDirectories")
 				assert.Nil(t, err)
-				assert.Equal(t, []string{"AllDirectories/3", "AllDirectories/3/4", "AllDirectories/3/5", "AllDirectories/3/5/6"}, files)
-				files, err = driver.AllDirectories("/AllDirectories")
+				assert.Equal(t, []string{rootFolder + "AllDirectories/3", rootFolder + "AllDirectories/3/4", rootFolder + "AllDirectories/3/5", rootFolder + "AllDirectories/3/5/6"}, files)
+				files, err = driver.AllDirectories("/" + rootFolder + "AllDirectories")
 				assert.Nil(t, err)
-				assert.Equal(t, []string{"AllDirectories/3", "AllDirectories/3/4", "AllDirectories/3/5", "AllDirectories/3/5/6"}, files)
-				files, err = driver.AllDirectories("./AllDirectories/")
+				assert.Equal(t, []string{rootFolder + "AllDirectories/3", rootFolder + "AllDirectories/3/4", rootFolder + "AllDirectories/3/5", rootFolder + "AllDirectories/3/5/6"}, files)
+				files, err = driver.AllDirectories("./" + rootFolder + "AllDirectories/")
 				assert.Nil(t, err)
-				assert.Equal(t, []string{"AllDirectories/3", "AllDirectories/3/4", "AllDirectories/3/5", "AllDirectories/3/5/6"}, files)
-				assert.Nil(t, driver.DeleteDirectory("AllDirectories"))
+				assert.Equal(t, []string{rootFolder + "AllDirectories/3", rootFolder + "AllDirectories/3/4", rootFolder + "AllDirectories/3/5", rootFolder + "AllDirectories/3/5/6"}, files)
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"AllDirectories"))
 			},
 		},
 		{
 			name: "AllFiles",
 			setup: func() {
-				assert.Nil(t, driver.Put("AllFiles/1.txt", "Goravel"))
-				assert.Nil(t, driver.Put("AllFiles/2.txt", "Goravel"))
-				assert.Nil(t, driver.Put("AllFiles/3/3.txt", "Goravel"))
-				assert.Nil(t, driver.Put("AllFiles/3/4/4.txt", "Goravel"))
-				assert.True(t, driver.Exists("AllFiles/1.txt"))
-				assert.True(t, driver.Exists("AllFiles/2.txt"))
-				assert.True(t, driver.Exists("AllFiles/3/3.txt"))
-				assert.True(t, driver.Exists("AllFiles/3/4/4.txt"))
-				files, err := driver.AllFiles("AllFiles")
+				assert.Nil(t, driver.Put(rootFolder+"AllFiles/1.txt", "Goravel"))
+				assert.Nil(t, driver.Put(rootFolder+"AllFiles/2.txt", "Goravel"))
+				assert.Nil(t, driver.Put(rootFolder+"AllFiles/3/3.txt", "Goravel"))
+				assert.Nil(t, driver.Put(rootFolder+"AllFiles/3/4/4.txt", "Goravel"))
+				assert.True(t, driver.Exists(rootFolder+"AllFiles/1.txt"))
+				assert.True(t, driver.Exists(rootFolder+"AllFiles/2.txt"))
+				assert.True(t, driver.Exists(rootFolder+"AllFiles/3/3.txt"))
+				assert.True(t, driver.Exists(rootFolder+"AllFiles/3/4/4.txt"))
+				files, err := driver.AllFiles(rootFolder + "AllFiles")
 				assert.Nil(t, err)
-				assert.Equal(t, []string{"AllFiles/1.txt", "AllFiles/2.txt", "AllFiles/3/3.txt", "AllFiles/3/4/4.txt"}, files)
-				files, err = driver.AllFiles("./AllFiles")
+				assert.Equal(t, []string{rootFolder + "AllFiles/1.txt", rootFolder + "AllFiles/2.txt", rootFolder + "AllFiles/3/3.txt", rootFolder + "AllFiles/3/4/4.txt"}, files)
+				files, err = driver.AllFiles("./" + rootFolder + "AllFiles")
 				assert.Nil(t, err)
-				assert.Equal(t, []string{"AllFiles/1.txt", "AllFiles/2.txt", "AllFiles/3/3.txt", "AllFiles/3/4/4.txt"}, files)
-				files, err = driver.AllFiles("/AllFiles")
+				assert.Equal(t, []string{rootFolder + "AllFiles/1.txt", rootFolder + "AllFiles/2.txt", rootFolder + "AllFiles/3/3.txt", rootFolder + "AllFiles/3/4/4.txt"}, files)
+				files, err = driver.AllFiles("/" + rootFolder + "AllFiles")
 				assert.Nil(t, err)
-				assert.Equal(t, []string{"AllFiles/1.txt", "AllFiles/2.txt", "AllFiles/3/3.txt", "AllFiles/3/4/4.txt"}, files)
-				files, err = driver.AllFiles("./AllFiles/")
+				assert.Equal(t, []string{rootFolder + "AllFiles/1.txt", rootFolder + "AllFiles/2.txt", rootFolder + "AllFiles/3/3.txt", rootFolder + "AllFiles/3/4/4.txt"}, files)
+				files, err = driver.AllFiles("./" + rootFolder + "AllFiles/")
 				assert.Nil(t, err)
-				assert.Equal(t, []string{"AllFiles/1.txt", "AllFiles/2.txt", "AllFiles/3/3.txt", "AllFiles/3/4/4.txt"}, files)
-				assert.Nil(t, driver.DeleteDirectory("AllFiles"))
+				assert.Equal(t, []string{rootFolder + "AllFiles/1.txt", rootFolder + "AllFiles/2.txt", rootFolder + "AllFiles/3/3.txt", rootFolder + "AllFiles/3/4/4.txt"}, files)
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"AllFiles"))
 			},
 		},
 		{
 			name: "Copy",
 			setup: func() {
-				assert.Nil(t, driver.Put("Copy/1.txt", "Goravel"))
-				assert.True(t, driver.Exists("Copy/1.txt"))
-				assert.Nil(t, driver.Copy("Copy/1.txt", "Copy1/1.txt"))
-				assert.True(t, driver.Exists("Copy/1.txt"))
-				assert.True(t, driver.Exists("Copy1/1.txt"))
-				assert.Nil(t, driver.DeleteDirectory("Copy"))
-				assert.Nil(t, driver.DeleteDirectory("Copy1"))
+				assert.Nil(t, driver.Put(rootFolder+"Copy/1.txt", "Goravel"))
+				assert.True(t, driver.Exists(rootFolder+"Copy/1.txt"))
+				assert.Nil(t, driver.Copy(rootFolder+"Copy/1.txt", rootFolder+"Copy1/1.txt"))
+				assert.True(t, driver.Exists(rootFolder+"Copy/1.txt"))
+				assert.True(t, driver.Exists(rootFolder+"Copy1/1.txt"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"Copy"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"Copy1"))
 			},
 		},
 		{
 			name: "Delete",
 			setup: func() {
-				assert.Nil(t, driver.Put("Delete/1.txt", "Goravel"))
-				assert.True(t, driver.Exists("Delete/1.txt"))
-				assert.Nil(t, driver.Delete("Delete/1.txt"))
-				assert.True(t, driver.Missing("Delete/1.txt"))
-				assert.Nil(t, driver.DeleteDirectory("Delete"))
+				assert.Nil(t, driver.Put(rootFolder+"Delete/1.txt", "Goravel"))
+				assert.True(t, driver.Exists(rootFolder+"Delete/1.txt"))
+				assert.Nil(t, driver.Delete(rootFolder+"Delete/1.txt"))
+				assert.True(t, driver.Missing(rootFolder+"Delete/1.txt"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"Delete"))
 			},
 		},
 		{
 			name: "DeleteDirectory",
 			setup: func() {
-				assert.Nil(t, driver.Put("DeleteDirectory/1.txt", "Goravel"))
-				assert.True(t, driver.Exists("DeleteDirectory/1.txt"))
+				assert.Nil(t, driver.Put(rootFolder+"DeleteDirectory/1.txt", "Goravel"))
+				assert.True(t, driver.Exists(rootFolder+"DeleteDirectory/1.txt"))
 				fileInfo := &File{path: "logo.png"}
-				path, err := driver.PutFile("DeleteDirectory", fileInfo)
+				path, err := driver.PutFile(rootFolder+"DeleteDirectory", fileInfo)
 				assert.Nil(t, err)
 				assert.True(t, driver.Exists(path))
-				assert.Nil(t, driver.DeleteDirectory("DeleteDirectory"))
-				assert.True(t, driver.Missing("DeleteDirectory/1.txt"))
-				assert.Nil(t, driver.DeleteDirectory("DeleteDirectory"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"DeleteDirectory"))
+				assert.True(t, driver.Missing(rootFolder+"DeleteDirectory/1.txt"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"DeleteDirectory"))
 			},
 		},
 		{
 			name: "Directories",
 			setup: func() {
-				assert.Nil(t, driver.Put("Directories/1.txt", "Goravel"))
-				assert.Nil(t, driver.Put("Directories/2.txt", "Goravel"))
-				assert.Nil(t, driver.Put("Directories/3/3.txt", "Goravel"))
-				assert.Nil(t, driver.Put("Directories/3/5/5.txt", "Goravel"))
-				assert.Nil(t, driver.MakeDirectory("Directories/3/4"))
-				assert.True(t, driver.Exists("Directories/1.txt"))
-				assert.True(t, driver.Exists("Directories/2.txt"))
-				assert.True(t, driver.Exists("Directories/3/3.txt"))
-				assert.True(t, driver.Exists("Directories/3/5/5.txt"))
-				files, err := driver.Directories("Directories")
+				assert.Nil(t, driver.Put(rootFolder+"Directories/1.txt", "Goravel"))
+				assert.Nil(t, driver.Put(rootFolder+"Directories/2.txt", "Goravel"))
+				assert.Nil(t, driver.Put(rootFolder+"Directories/3/3.txt", "Goravel"))
+				assert.Nil(t, driver.Put(rootFolder+"Directories/3/5/5.txt", "Goravel"))
+				assert.Nil(t, driver.MakeDirectory(rootFolder+"Directories/3/4"))
+				assert.True(t, driver.Exists(rootFolder+"Directories/1.txt"))
+				assert.True(t, driver.Exists(rootFolder+"Directories/2.txt"))
+				assert.True(t, driver.Exists(rootFolder+"Directories/3/3.txt"))
+				assert.True(t, driver.Exists(rootFolder+"Directories/3/5/5.txt"))
+				files, err := driver.Directories(rootFolder + "Directories")
 				assert.Nil(t, err)
-				assert.Equal(t, []string{"Directories/3"}, files)
-				files, err = driver.Directories("./Directories")
+				assert.Equal(t, []string{rootFolder + "Directories/3"}, files)
+				files, err = driver.Directories("./" + rootFolder + "Directories")
 				assert.Nil(t, err)
-				assert.Equal(t, []string{"Directories/3"}, files)
-				files, err = driver.Directories("/Directories")
+				assert.Equal(t, []string{rootFolder + "Directories/3"}, files)
+				files, err = driver.Directories("/" + rootFolder + "Directories")
 				assert.Nil(t, err)
-				assert.Equal(t, []string{"Directories/3"}, files)
-				files, err = driver.Directories("./Directories/")
+				assert.Equal(t, []string{rootFolder + "Directories/3"}, files)
+				files, err = driver.Directories("./" + rootFolder + "Directories/")
 				assert.Nil(t, err)
-				assert.Equal(t, []string{"Directories/3"}, files)
-				assert.Nil(t, driver.DeleteDirectory("Directories"))
+				assert.Equal(t, []string{rootFolder + "Directories/3"}, files)
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"Directories"))
 			},
 		},
 		{
 			name: "Files",
 			setup: func() {
-				assert.Nil(t, driver.Put("Files/1.txt", "Goravel"))
-				assert.Nil(t, driver.Put("Files/2.txt", "Goravel"))
-				assert.Nil(t, driver.Put("Files/3/3.txt", "Goravel"))
-				assert.Nil(t, driver.Put("Files/3/4/4.txt", "Goravel"))
-				assert.True(t, driver.Exists("Files/1.txt"))
-				assert.True(t, driver.Exists("Files/2.txt"))
-				assert.True(t, driver.Exists("Files/3/3.txt"))
-				assert.True(t, driver.Exists("Files/3/4/4.txt"))
-				files, err := driver.Files("Files")
+				assert.Nil(t, driver.Put(rootFolder+"Files/1.txt", "Goravel"))
+				assert.Nil(t, driver.Put(rootFolder+"Files/2.txt", "Goravel"))
+				assert.Nil(t, driver.Put(rootFolder+"Files/3/3.txt", "Goravel"))
+				assert.Nil(t, driver.Put(rootFolder+"Files/3/4/4.txt", "Goravel"))
+				assert.True(t, driver.Exists(rootFolder+"Files/1.txt"))
+				assert.True(t, driver.Exists(rootFolder+"Files/2.txt"))
+				assert.True(t, driver.Exists(rootFolder+"Files/3/3.txt"))
+				assert.True(t, driver.Exists(rootFolder+"Files/3/4/4.txt"))
+				files, err := driver.Files(rootFolder + "Files")
 				assert.Nil(t, err)
-				assert.Equal(t, []string{"Files/1.txt", "Files/2.txt"}, files)
-				files, err = driver.Files("./Files")
+				assert.Equal(t, []string{rootFolder + "Files/1.txt", rootFolder + "Files/2.txt"}, files)
+				files, err = driver.Files("./" + rootFolder + "Files")
 				assert.Nil(t, err)
-				assert.Equal(t, []string{"Files/1.txt", "Files/2.txt"}, files)
-				files, err = driver.Files("/Files")
+				assert.Equal(t, []string{rootFolder + "Files/1.txt", rootFolder + "Files/2.txt"}, files)
+				files, err = driver.Files("/" + rootFolder + "Files")
 				assert.Nil(t, err)
-				assert.Equal(t, []string{"Files/1.txt", "Files/2.txt"}, files)
-				files, err = driver.Files("./Files/")
+				assert.Equal(t, []string{rootFolder + "Files/1.txt", rootFolder + "Files/2.txt"}, files)
+				files, err = driver.Files("./" + rootFolder + "Files/")
 				assert.Nil(t, err)
-				assert.Equal(t, []string{"Files/1.txt", "Files/2.txt"}, files)
-				assert.Nil(t, driver.DeleteDirectory("Files"))
+				assert.Equal(t, []string{rootFolder + "Files/1.txt", rootFolder + "Files/2.txt"}, files)
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"Files"))
 			},
 		},
 		{
 			name: "Get",
 			setup: func() {
-				assert.Nil(t, driver.Put("Get/1.txt", "Goravel"))
-				assert.True(t, driver.Exists("Get/1.txt"))
-				data, err := driver.Get("Get/1.txt")
+				assert.Nil(t, driver.Put(rootFolder+"Get/1.txt", "Goravel"))
+				assert.True(t, driver.Exists(rootFolder+"Get/1.txt"))
+				data, err := driver.Get(rootFolder + "Get/1.txt")
 				assert.Nil(t, err)
 				assert.Equal(t, "Goravel", data)
-				length, err := driver.Size("Get/1.txt")
+				length, err := driver.Size(rootFolder + "Get/1.txt")
 				assert.Nil(t, err)
 				assert.Equal(t, int64(7), length)
-				assert.Nil(t, driver.DeleteDirectory("Get"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"Get"))
 			},
 		},
 		{
 			name: "LastModified",
 			setup: func() {
-				assert.Nil(t, driver.Put("LastModified/1.txt", "Goravel"))
-				assert.True(t, driver.Exists("LastModified/1.txt"))
-				assert.Nil(t, driver.Put("LastModified/1.txt", "Goravel-new"))
-				date, err := driver.LastModified("LastModified/1.txt")
+				assert.Nil(t, driver.Put(rootFolder+"LastModified/1.txt", "Goravel"))
+				assert.True(t, driver.Exists(rootFolder+"LastModified/1.txt"))
+				assert.Nil(t, driver.Put(rootFolder+"LastModified/1.txt", "Goravel-new"))
+				date, err := driver.LastModified(rootFolder + "LastModified/1.txt")
 				assert.Nil(t, err)
 
 				l, err := time.LoadLocation("UTC")
 				assert.Nil(t, err)
-				assert.Equal(t, time.Now().In(l).Format("2006-01-02 15"), date.Format("2006-01-02 15"))
-				assert.Nil(t, driver.DeleteDirectory("LastModified"))
+				assert.Equal(t, carbon.Now().ToStdTime().In(l).Format("2006-01-02 15"), date.Format("2006-01-02 15"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"LastModified"))
 			},
 		},
 		{
 			name: "MakeDirectory",
 			setup: func() {
-				assert.Nil(t, driver.MakeDirectory("MakeDirectory1/"))
-				assert.Nil(t, driver.MakeDirectory("MakeDirectory2"))
-				assert.Nil(t, driver.MakeDirectory("MakeDirectory3/MakeDirectory4"))
-				assert.Nil(t, driver.DeleteDirectory("MakeDirectory1"))
-				assert.Nil(t, driver.DeleteDirectory("MakeDirectory2"))
-				assert.Nil(t, driver.DeleteDirectory("MakeDirectory3"))
-				assert.Nil(t, driver.DeleteDirectory("MakeDirectory4"))
+				assert.Nil(t, driver.MakeDirectory(rootFolder+"MakeDirectory1/"))
+				assert.Nil(t, driver.MakeDirectory(rootFolder+"MakeDirectory2"))
+				assert.Nil(t, driver.MakeDirectory(rootFolder+"MakeDirectory3/MakeDirectory4"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"MakeDirectory1"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"MakeDirectory2"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"MakeDirectory3"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"MakeDirectory4"))
 			},
 		},
 		{
 			name: "MimeType",
 			setup: func() {
-				assert.Nil(t, driver.Put("MimeType/1.txt", "Goravel"))
-				assert.True(t, driver.Exists("MimeType/1.txt"))
-				mimeType, err := driver.MimeType("MimeType/1.txt")
+				assert.Nil(t, driver.Put(rootFolder+"MimeType/1.txt", "Goravel"))
+				assert.True(t, driver.Exists(rootFolder+"MimeType/1.txt"))
+				mimeType, err := driver.MimeType(rootFolder + "MimeType/1.txt")
 				assert.Nil(t, err)
 				mediaType, _, err := mime.ParseMediaType(mimeType)
 				assert.Nil(t, err)
 				assert.Equal(t, "raw", mediaType)
 
 				fileInfo := &File{path: "logo.png"}
-				path, err := driver.PutFile("MimeType", fileInfo)
+				path, err := driver.PutFile(rootFolder+"MimeType", fileInfo)
 				assert.Nil(t, err)
 				assert.True(t, driver.Exists(path))
 				mimeType, err = driver.MimeType(path)
 				assert.Nil(t, err)
 				assert.Equal(t, "image/png", mimeType)
-				assert.Nil(t, driver.DeleteDirectory("MimeType"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"MimeType"))
 			},
 		},
 		{
 			name: "Move",
 			setup: func() {
-				assert.Nil(t, driver.Put("Move/1.txt", "Goravel"))
-				assert.True(t, driver.Exists("Move/1.txt"))
-				assert.Nil(t, driver.Move("Move/1.txt", "Move1/1.txt"))
-				assert.True(t, driver.Missing("Move/1.txt"))
-				assert.True(t, driver.Exists("Move1/1.txt"))
-				assert.Nil(t, driver.DeleteDirectory("Move"))
-				assert.Nil(t, driver.DeleteDirectory("Move1"))
+				assert.Nil(t, driver.Put(rootFolder+"Move/1.txt", "Goravel"))
+				assert.True(t, driver.Exists(rootFolder+"Move/1.txt"))
+				assert.Nil(t, driver.Move(rootFolder+"Move/1.txt", rootFolder+"Move1/1.txt"))
+				assert.True(t, driver.Missing(rootFolder+"Move/1.txt"))
+				assert.True(t, driver.Exists(rootFolder+"Move1/1.txt"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"Move"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"Move1"))
 			},
 		},
 		{
 			name: "Put",
 			setup: func() {
-				assert.Nil(t, driver.Put("Put/1.txt", "Goravel"))
-				assert.True(t, driver.Exists("Put/1.txt"))
-				assert.True(t, driver.Missing("Put/2.txt"))
-				assert.Nil(t, driver.DeleteDirectory("Put"))
+				assert.Nil(t, driver.Put(rootFolder+"Put/1.txt", "Goravel"))
+				assert.True(t, driver.Exists(rootFolder+"Put/1.txt"))
+				assert.True(t, driver.Missing(rootFolder+"Put/2.txt"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"Put"))
 			},
 		},
 		{
 			name: "PutFile_Image",
 			setup: func() {
 				fileInfo := &File{path: "logo.png"}
-				path, err := driver.PutFile("PutFile1", fileInfo)
+				path, err := driver.PutFile(rootFolder+"PutFile1", fileInfo)
 				assert.Nil(t, err)
 				assert.True(t, driver.Exists(path))
-				assert.Nil(t, driver.DeleteDirectory("PutFile1"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"PutFile1"))
 			},
 		},
 		{
 			name: "PutFile_Text",
 			setup: func() {
 				fileInfo := &File{path: "test.txt"}
-				path, err := driver.PutFile("PutFile", fileInfo)
+				path, err := driver.PutFile(rootFolder+"PutFile", fileInfo)
 				assert.Nil(t, err)
 				assert.True(t, driver.Exists(path))
 				data, err := driver.Get(path)
 				assert.Nil(t, err)
 				assert.Equal(t, "Goravel", data)
-				assert.Nil(t, driver.DeleteDirectory("PutFile"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"PutFile"))
 			},
 		},
 		{
 			name: "PutFileAs_Text",
 			setup: func() {
 				fileInfo := &File{path: "test.txt"}
-				path, err := driver.PutFileAs("PutFileAs", fileInfo, "text")
+				path, err := driver.PutFileAs(rootFolder+"PutFileAs", fileInfo, "text")
 				assert.Nil(t, err)
-				assert.Equal(t, "PutFileAs/text.txt", path)
+				assert.Equal(t, rootFolder+"PutFileAs/text.txt", path)
 				assert.True(t, driver.Exists(path))
 				data, err := driver.Get(path)
 				assert.Nil(t, err)
 				assert.Equal(t, "Goravel", data)
 
-				path, err = driver.PutFileAs("PutFileAs", fileInfo, "text1.txt")
+				path, err = driver.PutFileAs(rootFolder+"PutFileAs", fileInfo, "text1.txt")
 				assert.Nil(t, err)
-				assert.Equal(t, "PutFileAs/text1.txt", path)
+				assert.Equal(t, rootFolder+"PutFileAs/text1.txt", path)
 				assert.True(t, driver.Exists(path))
 				data, err = driver.Get(path)
 				assert.Nil(t, err)
 				assert.Equal(t, "Goravel", data)
 
-				assert.Nil(t, driver.DeleteDirectory("PutFileAs"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"PutFileAs"))
 			},
 		},
 		{
 			name: "PutFileAs_Image",
 			setup: func() {
 				fileInfo := &File{path: "logo.png"}
-				path, err := driver.PutFileAs("PutFileAs1", fileInfo, "image")
+				path, err := driver.PutFileAs(rootFolder+"PutFileAs1", fileInfo, "image")
 				assert.Nil(t, err)
-				assert.Equal(t, "PutFileAs1/image", path)
+				assert.Equal(t, rootFolder+"PutFileAs1/image", path)
 				assert.True(t, driver.Exists(path))
 
-				path, err = driver.PutFileAs("PutFileAs1", fileInfo, "image1.png")
+				path, err = driver.PutFileAs(rootFolder+"PutFileAs1", fileInfo, "image1.png")
 				assert.Nil(t, err)
-				assert.Equal(t, "PutFileAs1/image1", path)
+				assert.Equal(t, rootFolder+"PutFileAs1/image1", path)
 				assert.True(t, driver.Exists(path))
 
-				assert.Nil(t, driver.DeleteDirectory("PutFileAs1"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"PutFileAs1"))
 			},
 		},
 		{
 			name: "Size",
 			setup: func() {
-				assert.Nil(t, driver.Put("Size/1.txt", "Goravel"))
-				assert.True(t, driver.Exists("Size/1.txt"))
-				length, err := driver.Size("Size/1.txt")
+				assert.Nil(t, driver.Put(rootFolder+"Size/1.txt", "Goravel"))
+				assert.True(t, driver.Exists(rootFolder+"Size/1.txt"))
+				length, err := driver.Size(rootFolder + "Size/1.txt")
 				assert.Nil(t, err)
 				assert.Equal(t, int64(7), length)
-				assert.Nil(t, driver.DeleteDirectory("Size"))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"Size"))
 			},
 		},
 		{
 			name: "TemporaryUrl",
 			setup: func() {
-				url, err := driver.TemporaryUrl("TemporaryUrl/1.txt", time.Now().Add(5*time.Second))
+				url, err := driver.TemporaryUrl(rootFolder+"TemporaryUrl/1.txt", time.Now().Add(5*time.Second))
 				assert.NotNil(t, err)
 				assert.Empty(t, url)
 			},
 		},
-		//{
-		//	name: "Url",
-		//	setup: func() {
-		//		assert.Nil(t, driver.Put("Url/1.txt", "Goravel"))
-		//		assert.True(t, driver.Exists("Url/1.txt"))
-		//		url := url + "/Url/1.txt"
-		//		assert.Equal(t, url, driver.Url("Url/1.txt"))
-		//		resp, err := http.Get(url)
-		//		assert.Nil(t, err)
-		//		content, err := io.ReadAll(resp.Body)
-		//		assert.Nil(t, resp.Body.Close())
-		//		assert.Nil(t, err)
-		//		assert.Equal(t, "Goravel", string(content))
-		//		assert.Nil(t, driver.DeleteDirectory("Url"))
-		//	},
-		//},
+		{
+			name: "Url",
+			setup: func() {
+				assert.Nil(t, driver.Put(rootFolder+"Url/1.txt", "Goravel"))
+				assert.True(t, driver.Exists(rootFolder+"Url/1.txt"))
+				url := driver.Url(rootFolder + "Url/1.txt")
+				matches := regexp.MustCompile(`/v\d+/(.+)`).FindStringSubmatch(url)
+				assert.Equal(t, rootFolder+"Url/1.txt", matches[1])
+				resp, err := http.Get(url)
+				assert.Nil(t, err)
+				content, err := io.ReadAll(resp.Body)
+				assert.Nil(t, resp.Body.Close())
+				assert.Nil(t, err)
+				assert.Equal(t, "Goravel", string(content))
+				assert.Nil(t, driver.DeleteDirectory(rootFolder+"Url"))
+			},
+		},
 	}
 
-	var err error
-	driver, err = NewCloudinary(context.Background(), mockConfig, "cloudinary")
-	assert.NotNil(t, driver)
-	assert.Nil(t, err)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			test.setup()

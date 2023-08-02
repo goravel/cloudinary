@@ -24,14 +24,12 @@ type Cloudinary struct {
 	config   config.Config
 	instance *cloudinary.Cloudinary
 	disk     string
-	url      string
 }
 
 func NewCloudinary(ctx context.Context, config config.Config, disk string) (*Cloudinary, error) {
-	apiSecret := config.GetString(fmt.Sprintf("filesystems.disks.%s.secret", disk))
-	apiKey := config.GetString(fmt.Sprintf("filesystems.disks.%s.key", disk))
 	cloudName := config.GetString(fmt.Sprintf("filesystems.disks.%s.cloud", disk))
-	url := config.GetString(fmt.Sprintf("filesystems.disks.%s.url", disk))
+	apiKey := config.GetString(fmt.Sprintf("filesystems.disks.%s.key", disk))
+	apiSecret := config.GetString(fmt.Sprintf("filesystems.disks.%s.secret", disk))
 	if apiSecret == "" || apiKey == "" || cloudName == "" {
 		return nil, fmt.Errorf("cloudinary config not found for disk %s", disk)
 	}
@@ -45,7 +43,6 @@ func NewCloudinary(ctx context.Context, config config.Config, disk string) (*Clo
 		config:   config,
 		instance: client,
 		disk:     disk,
-		url:      url,
 	}, nil
 }
 
@@ -342,7 +339,6 @@ func (r *Cloudinary) Url(file string) string {
 }
 
 func (r *Cloudinary) getAsset(path string) (*admin.AssetResult, error) {
-	color.Yellowln(r.getPublicId(path), api.AssetType(r.getResourceType(path)), r.getResourceType(path))
 	return r.instance.Admin.Asset(r.ctx, admin.AssetParams{
 		PublicID:  r.getPublicId(path),
 		AssetType: api.AssetType(r.getResourceType(path)),

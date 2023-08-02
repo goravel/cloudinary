@@ -21,26 +21,31 @@ A cloudinary driver for facades.Storage of Goravel.
         &cloudinary.ServiceProvider{},
     }
     ```
-3. Add cloudinary disk to `config/filesystems.go` file
-   ```go
-   // config/filesystems.go
-   ...
+   3. Add cloudinary disk to `config/filesystems.go` file
+      ```go
+      // config/filesystems.go
+      ...
    
-   import (
-         cloudinaryfacades "github.com/goravel/cloudinary/facades"
-         "github.com/goravel/framework/filesystem"
-   )
+      import (
+            cloudinaryfacades "github.com/goravel/cloudinary/facades"
+            "github.com/goravel/framework/filesystem"
+      )
    
-   "disks": map[string]filesystem.Disk{
-         ...
-         "cloudinary": map[string]any{
-               "driver": "custom",
-               "cloud":  config.Env("CLOUDINARY_CLOUD"),
-               "key":    config.Env("CLOUDINARY_ACCESS_KEY_ID"), 
-               "secret": config.Env("CLOUDINARY_ACCESS_KEY_SECRET"),
-               "via": func()(filestystem.Disk, error) {
-                     return cloudinaryfacades.Cloudinary("cloudinary"), nil // The `cloudinary` value is the `disks` key
-               },
-         }
-   }
-   ```
+      "disks": map[string]filesystem.Disk{
+            ...
+            "cloudinary": map[string]any{
+                  "driver": "custom",
+                  "cloud":  config.Env("CLOUDINARY_CLOUD"),
+                  "key":    config.Env("CLOUDINARY_ACCESS_KEY_ID"), 
+                  "secret": config.Env("CLOUDINARY_ACCESS_KEY_SECRET"),
+                  "resource_types": map[string][]string{
+                       "image": {"png"},
+                       "video": {},
+                       "raw":   {"txt", "pdf"},
+                  },
+                  "via": func()(filestystem.Disk, error) {
+                        return cloudinaryfacades.Cloudinary("cloudinary"), nil // The `cloudinary` value is the `disks` key
+                  },
+            }
+      }
+      ```
