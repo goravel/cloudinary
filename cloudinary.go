@@ -316,7 +316,7 @@ func (r *Cloudinary) Size(file string) (int64, error) {
 
 // TemporaryUrl get the temporary url of a file.
 func (r *Cloudinary) TemporaryUrl(file string, time time.Time) (string, error) {
-	return "", errors.New("we don't support temporary url for cloudinary")
+	return "", errors.New("cloudinary doesn't support temporary url")
 }
 
 // WithContext sets the context for the driver.

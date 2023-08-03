@@ -4,7 +4,7 @@ A cloudinary driver for `facades.Storage()` of Goravel.
 ## Version
 | goravel/cloudinary | cloudinary | goravel/framework |
 |--------------------|------------|-------------------|
-| v1.0.0             | v1.7.0     | v1.12.0           |
+| v1.0.0             | v2.3.0     | v1.12.0           |
 
 ## Install
 1. Add package
