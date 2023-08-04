@@ -34,3 +34,11 @@ func validPath(path string) string {
 	realPath = strings.TrimSuffix(realPath, string(filepath.Separator))
 	return realPath
 }
+
+func defaultResourcesTypes() map[string][]string {
+	return map[string][]string{
+		"image": {"ai", "avif", "bmp", "bw", "djvu", "dng", "ps", "ept", "eps", "eps3", "fbx", "flif", "gif", "glb", "heif", "heic", "ico", "indd", "jpg", "jpe", "jpeg", "jp2", "wdp", "jxr", "hdp", "jxl", "obj", "pdf", "ply", "png", "psd", "arw", "cr2", "svg", "tga", "tif", "tiff", "u3ma", "usdz", "webp"},
+		"video": {"3g2", "3gp", "avi", "flv", "m3u8", "ts", "m2ts", "mts", "mov", "mkv", "mp4", "mpeg", "mpd", "mxf", "ogv", "webm", "wmv", "aac", "aiff", "amr", "flac", "m4a", "mp3", "ogg", "opus", "wav"},
+		"raw":   {"txt", "doc", "rtf", "xls", "ppt", "docx", "xlsx", "pptx", "pps", "ppsx", "odt", "ods", "odp"},
+	}
+}

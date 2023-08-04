@@ -172,10 +172,13 @@ func (r *Cloudinary) Directories(path string) ([]string, error) {
 // Exists checks if a file exists in the Cloudinary storage.
 func (r *Cloudinary) Exists(file string) bool {
 	asset, err := r.getAsset(file)
+	if err != nil {
+		return false
+	}
 	if asset.Error.Message != "" {
 		return false
 	}
-	return err == nil
+	return true
 }
 
 // Files returns all the files from the given directory.
@@ -361,7 +364,7 @@ func (r *Cloudinary) tempFile(content string) (*os.File, error) {
 func (r *Cloudinary) getResourceType(path string) string {
 	extension := strings.TrimPrefix(filepath.Ext(path), ".")
 	value := "image"
-	resourceTypes := r.config.Get(fmt.Sprintf("filesystems.disks.%s.resource_types", r.disk)).(map[string][]string)
+	resourceTypes := r.config.Get(fmt.Sprintf("filesystems.disks.%s.resource_types", r.disk), defaultResourcesTypes()).(map[string][]string)
 
 	for resourceType, extensions := range resourceTypes {
 		for _, ext := range extensions {
