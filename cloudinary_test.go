@@ -31,11 +31,7 @@ func TestStorage(t *testing.T) {
 	mockConfig.On("GetString", "filesystems.disks.cloudinary.key").Return(os.Getenv("CLOUDINARY_ACCESS_KEY_ID"))
 	mockConfig.On("GetString", "filesystems.disks.cloudinary.secret").Return(os.Getenv("CLOUDINARY_ACCESS_KEY_SECRET"))
 	mockConfig.On("GetString", "filesystems.disks.cloudinary.cloud").Return(os.Getenv("CLOUDINARY_CLOUD"))
-	mockConfig.On("Get", "filesystems.disks.cloudinary.resource_types", map[string][]string{
-		"image": {"png"},
-		"video": {},
-		"raw":   {"txt", "pdf"},
-	}).Return(map[string][]string{
+	mockConfig.On("Get", "filesystems.disks.cloudinary.resource_types", defaultResourcesTypes()).Return(map[string][]string{
 		"image": {"png"},
 		"video": {},
 		"raw":   {"txt", "pdf"},
