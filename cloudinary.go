@@ -338,10 +338,11 @@ func (r *Cloudinary) Url(file string) string {
 	return asset.SecureURL
 }
 
-func (r *Cloudinary) getAsset(path string) (*admin.AssetResult, error) {
-	return r.instance.Admin.Asset(r.ctx, admin.AssetParams{
-		PublicID:  r.getPublicId(path),
-		AssetType: api.AssetType(r.getResourceType(path)),
+func (r *Cloudinary) getAsset(path string) (*uploader.ExplicitResult, error) {
+	return r.instance.Upload.Explicit(r.ctx, uploader.ExplicitParams{
+		PublicID:     r.getPublicId(path),
+		Type:         "upload",
+		ResourceType: r.getResourceType(path),
 	})
 }
 
