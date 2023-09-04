@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -103,8 +102,8 @@ func (r *Cloudinary) AllFiles(path string) ([]string, error) {
 // Copy copies a file to a new location.
 func (r *Cloudinary) Copy(source, destination string) error {
 	result, err := r.instance.Upload.Upload(r.ctx, r.Url(source), uploader.UploadParams{
-		PublicID:     r.getPublicId(destination),
-		ResourceType: r.getResourceType(destination),
+		PublicID:     destination,
+		ResourceType: "auto",
 	})
 	if err != nil {
 		return err
@@ -118,10 +117,14 @@ func (r *Cloudinary) Copy(source, destination string) error {
 // Delete deletes a file.
 func (r *Cloudinary) Delete(file ...string) error {
 	for _, f := range file {
+		asset, err := r.getAsset(f)
+		if err != nil {
+			return err
+		}
 		result, err := r.instance.Upload.Destroy(r.ctx, uploader.DestroyParams{
-			PublicID:     r.getPublicId(f),
-			ResourceType: r.getResourceType(f),
+			PublicID:     asset.PublicID,
 			Invalidate:   api.Bool(true),
+			ResourceType: asset.ResourceType,
 		})
 		if err != nil {
 			return err
@@ -145,6 +148,7 @@ func (r *Cloudinary) DeleteDirectory(directory string) error {
 			return err
 		}
 	}
+
 	_, err := r.instance.Admin.DeleteFolder(r.ctx, admin.DeleteFolderParams{
 		Folder: directory,
 	})
@@ -171,8 +175,8 @@ func (r *Cloudinary) Directories(path string) ([]string, error) {
 
 // Exists checks if a file exists in the Cloudinary storage.
 func (r *Cloudinary) Exists(file string) bool {
-	asset, err := r.getAsset(file)
-	if err != nil || asset.Error.Message != "" {
+	_, err := r.getAsset(file)
+	if err != nil {
 		return false
 	}
 	return true
@@ -251,10 +255,14 @@ func (r *Cloudinary) Missing(file string) bool {
 
 // Move moves a file to a new location.
 func (r *Cloudinary) Move(source, destination string) error {
+	asset, err := r.getAsset(source)
+	if err != nil {
+		return err
+	}
 	rename, err := r.instance.Upload.Rename(r.ctx, uploader.RenameParams{
-		FromPublicID: r.getPublicId(source),
-		ToPublicID:   r.getPublicId(destination),
-		ResourceType: r.getResourceType(destination),
+		FromPublicID: asset.PublicID,
+		ToPublicID:   destination,
+		ResourceType: asset.ResourceType,
 	})
 	if err != nil {
 		return err
@@ -278,24 +286,32 @@ func (r *Cloudinary) Put(file, content string) error {
 		return err
 	}
 	_, err = r.instance.Upload.Upload(r.ctx, tempFile.Name(), uploader.UploadParams{
-		PublicID:       r.getPublicId(file),
+		PublicID:       file,
 		UseFilename:    api.Bool(true),
 		UniqueFilename: api.Bool(false),
-		ResourceType:   r.getResourceType(file),
+		ResourceType:   "auto",
 	})
 	return err
 }
 
 // PutFile stores a new file on the disk.
 func (r *Cloudinary) PutFile(path string, source filesystem.File) (string, error) {
-	return r.PutFileAs(path, source, source.File())
+	uploadResult, err := r.instance.Upload.Upload(r.ctx, source.File(), uploader.UploadParams{
+		Folder:         validPath(path),
+		UseFilename:    api.Bool(true),
+		UniqueFilename: api.Bool(false),
+	})
+	if err != nil {
+		return "", err
+	}
+	return uploadResult.PublicID, nil
 }
 
 // PutFileAs stores a new file on the disk.
 func (r *Cloudinary) PutFileAs(path string, source filesystem.File, name string) (string, error) {
 	uploadResult, err := r.instance.Upload.Upload(r.ctx, source.File(), uploader.UploadParams{
 		Folder:         validPath(path),
-		PublicID:       r.getPublicId(name),
+		PublicID:       name,
 		UseFilename:    api.Bool(true),
 		UniqueFilename: api.Bool(false),
 	})
@@ -339,11 +355,22 @@ func (r *Cloudinary) Url(file string) string {
 }
 
 func (r *Cloudinary) getAsset(path string) (*uploader.ExplicitResult, error) {
-	return r.instance.Upload.Explicit(r.ctx, uploader.ExplicitParams{
-		PublicID:     r.getPublicId(path),
-		Type:         "upload",
-		ResourceType: r.getResourceType(path),
-	})
+	// TODO: Search if there is a better way to get asset info
+	assetTypes := []api.AssetType{api.Image, api.Video, api.File}
+	for _, assetType := range assetTypes {
+		explicit, err := r.instance.Upload.Explicit(r.ctx, uploader.ExplicitParams{
+			PublicID:     path,
+			Type:         "upload",
+			ResourceType: string(assetType),
+		})
+		if err != nil {
+			return nil, err
+		}
+		if explicit.Error.Message == "" {
+			return explicit, nil
+		}
+	}
+	return nil, errors.New("file not found")
 }
 
 func (r *Cloudinary) tempFile(content string) (*os.File, error) {
@@ -357,35 +384,4 @@ func (r *Cloudinary) tempFile(content string) (*os.File, error) {
 	}
 
 	return tempFile, nil
-}
-
-func (r *Cloudinary) getResourceType(path string) string {
-	extension := strings.TrimPrefix(filepath.Ext(path), ".")
-	value := "image"
-	resourceTypes := r.config.Get(fmt.Sprintf("filesystems.disks.%s.resource_types", r.disk), defaultResourcesTypes()).(map[string][]string)
-
-	for resourceType, extensions := range resourceTypes {
-		for _, ext := range extensions {
-			if ext == extension {
-				value = resourceType
-				break
-			}
-		}
-	}
-
-	return value
-}
-
-func (r *Cloudinary) getPublicId(path string) string {
-	basename := filepath.Base(path)
-	dirname := filepath.Dir(path)
-	filename := strings.TrimSuffix(basename, filepath.Ext(basename))
-	if r.getResourceType(path) == "raw" {
-		filename = basename
-	}
-	// Prepend the dirname if it exists and is not "."
-	if dirname != "." {
-		return filepath.Join(dirname, filename)
-	}
-	return filename
 }

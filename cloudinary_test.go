@@ -31,11 +31,6 @@ func TestStorage(t *testing.T) {
 	mockConfig.On("GetString", "filesystems.disks.cloudinary.key").Return(os.Getenv("CLOUDINARY_ACCESS_KEY_ID"))
 	mockConfig.On("GetString", "filesystems.disks.cloudinary.secret").Return(os.Getenv("CLOUDINARY_ACCESS_KEY_SECRET"))
 	mockConfig.On("GetString", "filesystems.disks.cloudinary.cloud").Return(os.Getenv("CLOUDINARY_CLOUD"))
-	mockConfig.On("Get", "filesystems.disks.cloudinary.resource_types", defaultResourcesTypes()).Return(map[string][]string{
-		"image": {"png"},
-		"video": {},
-		"raw":   {"txt", "pdf"},
-	})
 
 	var driver contractsfilesystem.Driver
 	randNum, err := rand.Int(rand.Reader, big.NewInt(1000))
@@ -331,7 +326,7 @@ func TestStorage(t *testing.T) {
 
 				path, err = driver.PutFileAs(rootFolder+"PutFileAs1", fileInfo, "image1.png")
 				assert.Nil(t, err)
-				assert.Equal(t, rootFolder+"PutFileAs1/image1", path)
+				assert.Equal(t, rootFolder+"PutFileAs1/image1.png", path)
 				assert.True(t, driver.Exists(path))
 
 				assert.Nil(t, driver.DeleteDirectory(rootFolder+"PutFileAs1"))
