@@ -176,10 +176,7 @@ func (r *Cloudinary) Directories(path string) ([]string, error) {
 // Exists checks if a file exists in the Cloudinary storage.
 func (r *Cloudinary) Exists(file string) bool {
 	_, err := r.getAsset(file)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 // Files returns all the files from the given directory.
