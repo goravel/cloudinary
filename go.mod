@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/cloudinary/cloudinary-go/v2 v2.3.0
-	github.com/gookit/color v1.5.3
+	github.com/gookit/color v1.5.4
 	github.com/goravel/framework v1.12.7
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/net v0.14.0
