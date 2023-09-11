@@ -4,6 +4,10 @@ on:
     branches:
       - master
   pull_request:
+env:
+  CLOUDINARY_ACCESS_KEY_ID: ${{ secrets.CLOUDINARY_ACCESS_KEY_ID }}
+  CLOUDINARY_ACCESS_KEY_SECRET: ${{ secrets.CLOUDINARY_ACCESS_KEY_SECRET }}
+  CLOUDINARY_CLOUD: ${{ secrets.CLOUDINARY_CLOUD }}
 jobs:
   codecov:
     runs-on: ubuntu-latest
