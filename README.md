@@ -32,29 +32,22 @@ import "github.com/goravel/cloudinary"
 ```go
 // config/filesystems.go
 ...
-
+   
 import (
-     cloudinaryfacades "github.com/goravel/cloudinary/facades"
-     "github.com/goravel/framework/filesystem"
+      cloudinaryfacades "github.com/goravel/cloudinary/facades"
+      "github.com/goravel/framework/filesystem"
 )
-
+   
 "disks": map[string]filesystem.Disk{
-     ...
-     "cloudinary": map[string]any{
-           "driver": "custom",
-           "cloud":  config.Env("CLOUDINARY_CLOUD"),
-           "key":    config.Env("CLOUDINARY_ACCESS_KEY_ID"),
-           "secret": config.Env("CLOUDINARY_ACCESS_KEY_SECRET"),
-           // resource_types is optional
-           // it is used to limit the types of files that can be uploaded to cloudinary disk
-           "resource_types": map[string][]string{
-                "image": {"png"},
-                "video": {},
-                "raw":   {"txt", "pdf"},
-           },
-           "via": func()(filestystem.Disk, error) {
-                 return cloudinaryfacades.Cloudinary("cloudinary"), nil // The `cloudinary` value is the `disks` key
-           },
-     }
+      ...
+      "cloudinary": map[string]any{
+            "driver": "custom",
+            "cloud":  config.Env("CLOUDINARY_CLOUD"),
+            "key":    config.Env("CLOUDINARY_ACCESS_KEY_ID"), 
+            "secret": config.Env("CLOUDINARY_ACCESS_KEY_SECRET"),
+            "via": func()(filestystem.Disk, error) {
+                  return cloudinaryfacades.Cloudinary("cloudinary"), nil // The `cloudinary` value is the `disks` key
+            },
+      }
 }
 ```
