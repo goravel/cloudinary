@@ -4,6 +4,10 @@ on:
     branches:
       - master
   pull_request:
+env:
+  CLOUDINARY_ACCESS_KEY_ID: ${{ secrets.CLOUDINARY_ACCESS_KEY_ID }}
+  CLOUDINARY_ACCESS_KEY_SECRET: ${{ secrets.CLOUDINARY_ACCESS_KEY_SECRET }}
+  CLOUDINARY_CLOUD: ${{ secrets.CLOUDINARY_CLOUD }}
 jobs:
   codecov:
     runs-on: ubuntu-latest
@@ -17,7 +21,7 @@ jobs:
       - name: Run tests with coverage ✅
         run: go test -v -coverprofile="coverage.out" ./...
       - name: Upload coverage report to Codecov 📝
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           file: ./coverage.out
           token: ${{ secrets.CODECOV }}
