@@ -2,8 +2,6 @@ module github.com/goravel/cloudinary
 
 go 1.21
 
-toolchain go1.21.4
-
 require (
 	github.com/cloudinary/cloudinary-go/v2 v2.7.0
 	github.com/gookit/color v1.5.4
