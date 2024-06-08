@@ -1,11 +1,13 @@
 module github.com/goravel/cloudinary
 
-go 1.20
+go 1.21
+
+toolchain go1.21.4
 
 require (
 	github.com/cloudinary/cloudinary-go/v2 v2.7.0
 	github.com/gookit/color v1.5.4
-	github.com/goravel/framework v1.13.1
+	github.com/goravel/framework v1.14.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.26.0
 )
@@ -17,16 +19,16 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
 	github.com/containerd/continuity v0.3.0 // indirect
 	github.com/creasty/defaults v1.5.1 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/docker/cli v20.10.22+incompatible // indirect
 	github.com/docker/docker v20.10.24+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-module/carbon/v2 v2.2.6 // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/golang-module/carbon/v2 v2.3.12 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
-	github.com/google/uuid v1.3.1 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/schema v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -36,7 +38,7 @@ require (
 	github.com/opencontainers/runc v1.1.5 // indirect
 	github.com/ory/dockertest/v3 v3.10.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
@@ -48,9 +50,9 @@ require (
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230711160842-782d3b101e98 // indirect
-	google.golang.org/grpc v1.58.0 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240318140521-94a12d6c2237 // indirect
+	google.golang.org/grpc v1.64.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

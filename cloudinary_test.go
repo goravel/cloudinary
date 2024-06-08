@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/gookit/color"
-	configmocks "github.com/goravel/framework/contracts/config/mocks"
-	contractsfilesystem "github.com/goravel/framework/contracts/filesystem"
+	filesystemcontract "github.com/goravel/framework/contracts/filesystem"
+	configmock "github.com/goravel/framework/mocks/config"
 	"github.com/goravel/framework/support/carbon"
 	"github.com/stretchr/testify/assert"
 )
@@ -27,12 +27,12 @@ func TestStorage(t *testing.T) {
 
 	assert.Nil(t, os.WriteFile("test.txt", []byte("Goravel"), 0644))
 
-	mockConfig := &configmocks.Config{}
+	mockConfig := &configmock.Config{}
 	mockConfig.On("GetString", "filesystems.disks.cloudinary.key").Return(os.Getenv("CLOUDINARY_ACCESS_KEY_ID"))
 	mockConfig.On("GetString", "filesystems.disks.cloudinary.secret").Return(os.Getenv("CLOUDINARY_ACCESS_KEY_SECRET"))
 	mockConfig.On("GetString", "filesystems.disks.cloudinary.cloud").Return(os.Getenv("CLOUDINARY_CLOUD"))
 
-	var driver contractsfilesystem.Driver
+	var driver filesystemcontract.Driver
 	randNum, err := rand.Int(rand.Reader, big.NewInt(1000))
 	rootFolder := randNum.String() + "/"
 	assert.Nil(t, err)
@@ -201,6 +201,20 @@ func TestStorage(t *testing.T) {
 			},
 		},
 		{
+			name: "GetBytes",
+			setup: func() {
+				assert.Nil(t, driver.Put("GetBytes/1.txt", "Goravel"))
+				assert.True(t, driver.Exists("GetBytes/1.txt"))
+				data, err := driver.GetBytes("GetBytes/1.txt")
+				assert.Nil(t, err)
+				assert.Equal(t, []byte("Goravel"), data)
+				length, err := driver.Size("GetBytes/1.txt")
+				assert.Nil(t, err)
+				assert.Equal(t, int64(7), length)
+				assert.Nil(t, driver.DeleteDirectory("GetBytes"))
+			},
+		},
+		{
 			name: "LastModified",
 			setup: func() {
 				assert.Nil(t, driver.Put(rootFolder+"LastModified/1.txt", "Goravel"))
@@ -211,7 +225,7 @@ func TestStorage(t *testing.T) {
 
 				l, err := time.LoadLocation("UTC")
 				assert.Nil(t, err)
-				assert.Equal(t, carbon.Now().ToStdTime().In(l).Format("2006-01-02 15"), date.Format("2006-01-02 15"))
+				assert.Equal(t, carbon.Now().StdTime().In(l).Format("2006-01-02 15"), date.Format("2006-01-02 15"))
 				assert.Nil(t, driver.DeleteDirectory(rootFolder+"LastModified"))
 			},
 		},
@@ -383,7 +397,7 @@ type File struct {
 	path string
 }
 
-func (f *File) Disk(disk string) contractsfilesystem.File {
+func (f *File) Disk(disk string) filesystemcontract.File {
 	return &File{}
 }
 

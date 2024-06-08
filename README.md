@@ -4,9 +4,10 @@ A cloudinary driver for `facades.Storage()` of Goravel.
 
 ## Version
 
-| goravel/cloudinary | cloudinary | goravel/framework |
-|--------------------|------------|-------------------|
-| v1.1.*             | v2.4.0     | v1.13.*           |
+| goravel/cloudinary | goravel/framework |
+|--------------------|-------------------|
+| v1.2.*             | v1.14.*           |
+| v1.1.*             | v1.13.*           |
 
 ## Install
 
@@ -29,6 +30,7 @@ import "github.com/goravel/cloudinary"
 ```
 
 3. Add cloudinary disk to `config/filesystems.go` file
+
 ```go
 // config/filesystems.go
 ...
