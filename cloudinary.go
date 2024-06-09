@@ -199,11 +199,20 @@ func (r *Cloudinary) Files(path string) ([]string, error) {
 
 // Get returns the contents of a file.
 func (r *Cloudinary) Get(file string) (string, error) {
-	rawContent, err := GetRawContent(r.Url(file))
+	rawContent, err := r.GetBytes(file)
 	if err != nil {
 		return "", err
 	}
 	return string(rawContent), nil
+}
+
+// GetBytes returns the byte of a file.
+func (r *Cloudinary) GetBytes(file string) ([]byte, error) {
+	rawContent, err := GetRawContent(r.Url(file))
+	if err != nil {
+		return nil, err
+	}
+	return rawContent, nil
 }
 
 // LastModified returns the last modified time of a file.
