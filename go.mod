@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/cloudinary/cloudinary-go/v2 v2.7.0
 	github.com/gookit/color v1.5.4
-	github.com/goravel/framework v1.14.1
+	github.com/goravel/framework v1.14.2
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.26.0
 )
