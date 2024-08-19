@@ -3,7 +3,7 @@ module github.com/goravel/cloudinary
 go 1.21
 
 require (
-	github.com/cloudinary/cloudinary-go/v2 v2.8.0
+	github.com/cloudinary/cloudinary-go/v2 v2.9.0
 	github.com/gookit/color v1.5.4
 	github.com/goravel/framework v1.14.4
 	github.com/stretchr/testify v1.9.0
