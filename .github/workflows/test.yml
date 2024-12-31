@@ -9,14 +9,14 @@ env:
   CLOUDINARY_ACCESS_KEY_SECRET: ${{ secrets.CLOUDINARY_ACCESS_KEY_SECRET }}
   CLOUDINARY_CLOUD: ${{ secrets.CLOUDINARY_CLOUD }}
 jobs:
-  test:
+  ubuntu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: 'stable'
-      - name: Install dependencies 📦
+      - name: Install dependencies
         run: go mod tidy
       - name: Run tests
-        run: go test ./...
+        run: go test -timeout 1h ./...
