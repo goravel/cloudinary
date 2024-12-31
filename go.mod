@@ -1,11 +1,13 @@
 module github.com/goravel/cloudinary
 
-go 1.21
+go 1.22.7
+
+toolchain go1.23.3
 
 require (
 	github.com/cloudinary/cloudinary-go/v2 v2.9.0
 	github.com/gookit/color v1.5.4
-	github.com/goravel/framework v1.14.4
+	github.com/goravel/framework v1.15.1
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/net v0.33.0
 )
@@ -13,7 +15,7 @@ require (
 require (
 	github.com/creasty/defaults v1.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/golang-module/carbon/v2 v2.3.12 // indirect
+	github.com/dromara/carbon/v2 v2.5.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
@@ -22,8 +24,8 @@ require (
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240318140521-94a12d6c2237 // indirect
-	google.golang.org/grpc v1.64.0 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20241015192408-796eee8c2d53 // indirect
+	google.golang.org/grpc v1.69.2 // indirect
+	google.golang.org/protobuf v1.35.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
