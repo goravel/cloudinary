@@ -10,15 +10,12 @@ env:
   CLOUDINARY_CLOUD: ${{ secrets.CLOUDINARY_CLOUD }}
 jobs:
   test:
-    strategy:
-      matrix:
-        go: [ '1.21' ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go }}
+          go-version: 'stable'
       - name: Install dependencies 📦
         run: go mod tidy
       - name: Run tests
