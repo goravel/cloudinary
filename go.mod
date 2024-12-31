@@ -2,7 +2,7 @@ module github.com/goravel/cloudinary
 
 go 1.22.7
 
-toolchain go1.23.3
+toolchain go1.23.4
 
 require (
 	github.com/cloudinary/cloudinary-go/v2 v2.9.0
