@@ -16,6 +16,7 @@ import (
 	"github.com/gookit/color"
 	"github.com/goravel/framework/contracts/config"
 	"github.com/goravel/framework/contracts/filesystem"
+	"github.com/goravel/framework/support/str"
 )
 
 type Cloudinary struct {
@@ -175,6 +176,10 @@ func (r *Cloudinary) Directories(path string) ([]string, error) {
 
 // Exists checks if a file exists in the Cloudinary storage.
 func (r *Cloudinary) Exists(file string) bool {
+	if strings.HasSuffix(file, "/") {
+		return r.isDirectoryExist(file)
+	}
+
 	_, err := r.getAsset(file)
 	return err == nil
 }
@@ -227,7 +232,7 @@ func (r *Cloudinary) LastModified(file string) (time.Time, error) {
 // MakeDirectory creates a directory.
 func (r *Cloudinary) MakeDirectory(directory string) error {
 	result, err := r.instance.Admin.CreateFolder(r.ctx, admin.CreateFolderParams{
-		Folder: directory,
+		Folder: validPath(directory),
 	})
 	if err != nil {
 		return err
@@ -286,6 +291,12 @@ func (r *Cloudinary) Path(file string) string {
 
 // Put stores a new file on the disk.
 func (r *Cloudinary) Put(file, content string) error {
+	// If the file is created in a folder directly, we can't check if the folder exists.
+	// So we need to create the top folder first.
+	if err := r.makeDirectories(file); err != nil {
+		return err
+	}
+
 	tempFile, err := r.tempFile(content)
 	defer os.Remove(tempFile.Name())
 	if err != nil {
@@ -302,6 +313,12 @@ func (r *Cloudinary) Put(file, content string) error {
 
 // PutFile stores a new file on the disk.
 func (r *Cloudinary) PutFile(path string, source filesystem.File) (string, error) {
+	// If the file is created in a folder directly, we can't check if the folder exists.
+	// So we need to create the top folder first.
+	if err := r.makeDirectories(str.Of(path).Finish("/").String()); err != nil {
+		return "", err
+	}
+
 	uploadResult, err := r.instance.Upload.Upload(r.ctx, source.File(), uploader.UploadParams{
 		Folder:         validPath(path),
 		UseFilename:    api.Bool(true),
@@ -315,6 +332,12 @@ func (r *Cloudinary) PutFile(path string, source filesystem.File) (string, error
 
 // PutFileAs stores a new file on the disk.
 func (r *Cloudinary) PutFileAs(path string, source filesystem.File, name string) (string, error) {
+	// If the file is created in a folder directly, we can't check if the folder exists.
+	// So we need to create the top folder first.
+	if err := r.makeDirectories(str.Of(path).Finish("/").String()); err != nil {
+		return "", err
+	}
+
 	uploadResult, err := r.instance.Upload.Upload(r.ctx, source.File(), uploader.UploadParams{
 		Folder:         validPath(path),
 		PublicID:       name,
@@ -377,6 +400,41 @@ func (r *Cloudinary) getAsset(path string) (*uploader.ExplicitResult, error) {
 		}
 	}
 	return nil, errors.New("file not found")
+}
+
+func (r *Cloudinary) isDirectoryExist(path string) bool {
+	pathNoSlash := strings.TrimSuffix(path, "/")
+	paths := str.Of(path).RTrim("/").Split("/")
+	searchPath := "/"
+	if len(paths) > 1 {
+		searchPath = strings.Join(paths[:len(paths)-1], "/")
+	}
+
+	folders, err := r.instance.Admin.SubFolders(r.ctx, admin.SubFoldersParams{
+		Folder:     searchPath,
+		MaxResults: 100000,
+	})
+	if err != nil {
+		return false
+	}
+	for _, folder := range folders.Folders {
+		if folder.Path == pathNoSlash {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Cloudinary) makeDirectories(path string) error {
+	folders := strings.Split(path, "/")
+	for i := 1; i < len(folders); i++ {
+		folder := strings.Join(folders[:i], "/")
+		if err := r.MakeDirectory(folder); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *Cloudinary) tempFile(content string) (*os.File, error) {

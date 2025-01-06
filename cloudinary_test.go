@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/gookit/color"
-	filesystemcontract "github.com/goravel/framework/contracts/filesystem"
-	configmock "github.com/goravel/framework/mocks/config"
+	contractsfilesystem "github.com/goravel/framework/contracts/filesystem"
+	mocksconfig "github.com/goravel/framework/mocks/config"
 	"github.com/goravel/framework/support/carbon"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +25,7 @@ func TestStorage(t *testing.T) {
 
 	assert.Nil(t, os.WriteFile("test.txt", []byte("Goravel"), 0644))
 
-	mockConfig := &configmock.Config{}
+	mockConfig := &mocksconfig.Config{}
 	mockConfig.On("GetString", "filesystems.disks.cloudinary.key").Return(os.Getenv("CLOUDINARY_ACCESS_KEY_ID"))
 	mockConfig.On("GetString", "filesystems.disks.cloudinary.secret").Return(os.Getenv("CLOUDINARY_ACCESS_KEY_SECRET"))
 	mockConfig.On("GetString", "filesystems.disks.cloudinary.cloud").Return(os.Getenv("CLOUDINARY_CLOUD"))
@@ -49,6 +49,11 @@ func TestStorage(t *testing.T) {
 				assert.True(t, driver.Exists("AllDirectories/1.txt"))
 				assert.True(t, driver.Exists("AllDirectories/2.txt"))
 				assert.True(t, driver.Exists("AllDirectories/3/3.txt"))
+				assert.True(t, driver.Exists("AllDirectories/3/4/"))
+				assert.True(t, driver.Exists("AllDirectories/"))
+				assert.True(t, driver.Exists("AllDirectories/3/"))
+				assert.True(t, driver.Exists("AllDirectories/3/5/"))
+				assert.True(t, driver.Exists("AllDirectories/3/5/6/"))
 				assert.True(t, driver.Exists("AllDirectories/3/5/6/6.txt"))
 				files, err := driver.AllDirectories("AllDirectories")
 				assert.Nil(t, err)
@@ -271,8 +276,11 @@ func TestStorage(t *testing.T) {
 		{
 			name: "Put",
 			setup: func() {
-				assert.Nil(t, driver.Put("Put/1.txt", "Goravel"))
-				assert.True(t, driver.Exists("Put/1.txt"))
+				assert.Nil(t, driver.Put("Put/a/b/1.txt", "Goravel"))
+				assert.True(t, driver.Exists("Put/"))
+				assert.True(t, driver.Exists("Put/a/"))
+				assert.True(t, driver.Exists("Put/a/b/"))
+				assert.True(t, driver.Exists("Put/a/b/1.txt"))
 				assert.True(t, driver.Missing("Put/2.txt"))
 				assert.Nil(t, driver.DeleteDirectory("Put"))
 			},
@@ -391,7 +399,7 @@ type File struct {
 	path string
 }
 
-func (f *File) Disk(disk string) filesystemcontract.File {
+func (f *File) Disk(disk string) contractsfilesystem.File {
 	return &File{}
 }
 
