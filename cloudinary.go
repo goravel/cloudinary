@@ -16,6 +16,7 @@ import (
 	"github.com/gookit/color"
 	"github.com/goravel/framework/contracts/config"
 	"github.com/goravel/framework/contracts/filesystem"
+	"github.com/goravel/framework/http"
 	"github.com/goravel/framework/support/str"
 )
 
@@ -366,6 +367,10 @@ func (r *Cloudinary) TemporaryUrl(file string, time time.Time) (string, error) {
 
 // WithContext sets the context for the driver.
 func (r *Cloudinary) WithContext(ctx context.Context) filesystem.Driver {
+	if httpCtx, ok := ctx.(http.Context); ok {
+		ctx = httpCtx.Context()
+	}
+
 	driver, err := NewCloudinary(ctx, r.config, r.disk)
 	if err != nil {
 		color.Redf("[Cloudinary] init disk error: %+v\n", err)
