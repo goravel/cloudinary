@@ -1,15 +1,15 @@
 module github.com/goravel/cloudinary
 
-go 1.22.7
+go 1.23.0
 
-toolchain go1.23.3
+toolchain go1.24.0
 
 require (
 	github.com/cloudinary/cloudinary-go/v2 v2.9.1
 	github.com/gookit/color v1.5.4
 	github.com/goravel/framework v1.15.1
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/net v0.35.0
+	golang.org/x/net v0.36.0
 )
 
 require (
