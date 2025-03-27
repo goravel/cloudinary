@@ -9,7 +9,7 @@ require (
 	github.com/gookit/color v1.5.4
 	github.com/goravel/framework v1.15.1
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/net v0.37.0
+	golang.org/x/net v0.38.0
 )
 
 require (
