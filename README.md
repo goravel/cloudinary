@@ -38,7 +38,7 @@ import "github.com/goravel/cloudinary"
    
 import (
       cloudinaryfacades "github.com/goravel/cloudinary/facades"
-      "github.com/goravel/framework/filesystem"
+      "github.com/goravel/framework/contracts/filesystem"
 )
    
 "disks": map[string]filesystem.Disk{
@@ -48,8 +48,8 @@ import (
             "cloud":  config.Env("CLOUDINARY_CLOUD"),
             "key":    config.Env("CLOUDINARY_ACCESS_KEY_ID"), 
             "secret": config.Env("CLOUDINARY_ACCESS_KEY_SECRET"),
-            "via": func()(filestystem.Disk, error) {
-                  return cloudinaryfacades.Cloudinary("cloudinary"), nil // The `cloudinary` value is the `disks` key
+            "via": func()(filesystem.Driver, error) {
+                  return cloudinaryfacades.Cloudinary("cloudinary") // The `cloudinary` value is the `disks` key
             },
       }
 }
