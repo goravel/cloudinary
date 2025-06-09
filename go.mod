@@ -7,7 +7,7 @@ toolchain go1.24.0
 require (
 	github.com/cloudinary/cloudinary-go/v2 v2.10.0
 	github.com/gookit/color v1.5.4
-	github.com/goravel/framework v1.15.2-0.20250513024952-5c6bf415f2ed
+	github.com/goravel/framework v1.15.9
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/net v0.41.0
 )
