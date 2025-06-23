@@ -66,8 +66,8 @@ github.com/charmbracelet/x/exp/strings v0.0.0-20241222104055-e1130b311607 h1:D5D
 github.com/charmbracelet/x/exp/strings v0.0.0-20241222104055-e1130b311607/go.mod h1:pBhA0ybfXv6hDjQUZ7hk1lVxBiUbupdw5R31yPUViVQ=
 github.com/charmbracelet/x/term v0.2.1 h1:AQeHeLZ1OqSXhrAWpYUtZyX1T3zVxfpZuEQMIQaGIAQ=
 github.com/charmbracelet/x/term v0.2.1/go.mod h1:oQ4enTYFV7QN4m0i9mzHrViD7TQKvNEEkHUMCmsxdUg=
-github.com/cloudinary/cloudinary-go/v2 v2.10.0 h1:Gi4p2KmmA6E9M7MI43PFw/hd4svnkHmR0ElfMcpLkHE=
-github.com/cloudinary/cloudinary-go/v2 v2.10.0/go.mod h1:ireC4gqVetsjVhYlwjUJwKTbZuWjEIynbR9zQTlqsvo=
+github.com/cloudinary/cloudinary-go/v2 v2.10.1 h1:4qyuFW6vufjLPTtZBeuu1jVFszzVi4rSwf6kAz0U2EA=
+github.com/cloudinary/cloudinary-go/v2 v2.10.1/go.mod h1:ireC4gqVetsjVhYlwjUJwKTbZuWjEIynbR9zQTlqsvo=
 github.com/containerd/console v1.0.3/go.mod h1:7LqA/THxQ86k76b8c/EMSiaJ3h1eZkMkXar0TQ1gf3U=
 github.com/containerd/console v1.0.5 h1:R0ymNeydRqH2DmakFNdmjR2k0t7UPuiOV/N/27/qqsc=
 github.com/containerd/console v1.0.5/go.mod h1:YynlIjWYF8myEu6sdkwKIvGQq+cOckRm6So2avqoYAk=
